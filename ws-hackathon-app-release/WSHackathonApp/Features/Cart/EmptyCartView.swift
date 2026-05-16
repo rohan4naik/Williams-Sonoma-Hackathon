@@ -21,7 +21,6 @@ struct EmptyCartView: View {
             Text("Your Cart is Empty")
                 .font(.title2)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
             
             Spacer().frame(height: 20)
         }
