@@ -14,6 +14,7 @@ struct RecommendationCarousel: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.headline)
+                .foregroundColor(.white)
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {

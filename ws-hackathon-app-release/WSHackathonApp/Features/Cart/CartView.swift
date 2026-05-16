@@ -15,7 +15,7 @@ struct CartView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGray6)
+                Color.black
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -89,6 +89,7 @@ struct CartView: View {
                                     HStack {
                                         Text("Save for Later (\(viewModel.savedItems.count))")
                                             .font(.headline)
+                                            .foregroundColor(.white)
                                         
                                         Spacer()
                                         
@@ -126,17 +127,18 @@ struct CartView: View {
                             VStack(spacing: 8) {
                                 HStack {
                                     Text("Subtotal")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.gray)
                                     Spacer()
                                     Text(viewModel.totalPriceText)
+                                        .foregroundColor(.white)
                                 }
                                 
                                 HStack {
                                     Text("Shipping")
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.gray)
                                     Spacer()
                                     Text(cartRepository.totalPrice >= 150 ? "FREE" : "$15.00")
-                                        .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .primary)
+                                        .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .white)
                                 }
                                 
                                 Divider()
@@ -144,10 +146,12 @@ struct CartView: View {
                                 HStack {
                                     Text("Total")
                                         .font(.headline)
+                                        .foregroundColor(.white)
                                     Spacer()
                                     Text("$\(cartRepository.totalPrice + (cartRepository.totalPrice >= 150 ? 0 : 15), specifier: "%.2f")")
                                         .font(.headline)
                                         .fontWeight(.bold)
+                                        .foregroundColor(.white)
                                 }
                             }
                             
@@ -161,15 +165,15 @@ struct CartView: View {
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.black)
-                                .foregroundColor(.white)
+                                .background(Color.white)
+                                .foregroundColor(.black)
                                 .cornerRadius(12)
                             }
                         }
                         .padding()
-                        .background(Color(.systemBackground))
+                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: -5)
+                        .shadow(color: Color.white.opacity(0.05), radius: 10, x: 0, y: -5)
                     } else {
                         Button(action: {
                             tabBarVM.selectTab(.home)
