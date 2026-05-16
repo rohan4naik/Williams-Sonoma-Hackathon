@@ -21,42 +21,66 @@ struct CreateRegistryView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: spacing) {
+            VStack(spacing: 32) {
                 
                 // MARK: - Header
-                Text(AppStrings.Registry.createYourRegistry)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding(.top, 32)
+                VStack(spacing: 8) {
+                    Text(AppStrings.Registry.createYourRegistry)
+                        .font(.system(size: 28, weight: .bold))
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Enter your details to get started.")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 40)
                 
                 // MARK: - Form fields
-                VStack(spacing: spacing) {
+                VStack(spacing: 20) {
                     
-                    TextField(AppStrings.Registry.firstName, text: $viewModel.firstName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Personal Information")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
+                        TextField(AppStrings.Registry.firstName, text: $viewModel.firstName)
+                            .padding()
+                            .background(Color(.systemGray6).opacity(0.5))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                        
+                        TextField(AppStrings.Registry.lastName, text: $viewModel.lastName)
+                            .padding()
+                            .background(Color(.systemGray6).opacity(0.5))
+                            .cornerRadius(12)
+                            .padding(.horizontal)
+                    }
                     
-                    TextField(AppStrings.Registry.lastName, text: $viewModel.lastName)
-                        .textFieldStyle(RoundedBorderTextFieldStyle())
-                        .padding(.horizontal)
-                    
-                    VStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Event Details")
+                            .font(.headline)
+                            .padding(.horizontal)
+                        
                         HStack {
                             Text(AppStrings.Registry.event)
+                                .foregroundColor(.gray)
                             Spacer()
-                            // Event Picker
                             Picker(AppStrings.Registry.event, selection: $viewModel.selectedEvent) {
                                 ForEach(RegistryEvent.allCases) { event in
                                     Text(event.title).tag(event)
                                 }
                             }
                             .pickerStyle(MenuPickerStyle())
-                            .padding()
-                            .cornerRadius(8)
-                            .padding(.horizontal)
                         }
+                        .padding()
+                        .background(Color(.systemGray6).opacity(0.5))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                        
                         HStack {
                             Text(AppStrings.Registry.eventDate)
+                                .foregroundColor(.gray)
+                            Spacer()
                             DatePicker(
                                 "",
                                 selection: $viewModel.date,
@@ -64,14 +88,12 @@ struct CreateRegistryView: View {
                                 displayedComponents: .date
                             )
                             .datePickerStyle(.compact)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
                         }
-                        // Date Picker
-                    }.padding()
-                    
+                        .padding()
+                        .background(Color(.systemGray6).opacity(0.5))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
                 }
                 
                 // MARK: - Create Button
@@ -88,18 +110,19 @@ struct CreateRegistryView: View {
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(viewModel.isValid ? Color.black : Color.gray)
+                        .padding(.vertical, 16)
+                        .background(viewModel.isValid ? Color.black : Color.gray.opacity(0.5))
                         .cornerRadius(12)
                         .padding(.horizontal)
                 }
                 .disabled(!viewModel.isValid)
-                .padding(.top, 16)
+                .padding(.top, 8)
+                
                 Spacer()
             }
             .padding(.bottom, 32)
         }
-        .background(Color(.systemGray6).ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $navigateToSuccess) {
             RegistrySuccessView()

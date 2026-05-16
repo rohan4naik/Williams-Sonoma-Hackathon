@@ -15,6 +15,7 @@ enum RegistryRoute: Hashable {
 struct RegistryView: View {
     
     @StateObject private var viewModel = RegistryViewModel()
+    @State private var selectedInstruction: RegistryInstruction? = nil
     
     @EnvironmentObject var registryRepo: RegistryRepository
     @EnvironmentObject var cartRepo: CartRepository
@@ -24,24 +25,14 @@ struct RegistryView: View {
         NavigationStack(path: $tabBarVM.registryPath) {
             
             ZStack {
-                Color(.systemGray6)
+                Color.white
                     .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 0) {
                         
-                        // MARK: - Header Image
-                        GeometryReader { geometry in
-                            Image(AppImages.Registry.header)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: geometry.size.width, height: 200)
-                                .clipped()
-                        }
-                        .frame(height: 200)
-                        
                         // MARK: - Content
-                        VStack(spacing: 16) {
+                        VStack(spacing: 24) {
                             
                             if viewModel.hasRegistry {
                                 
@@ -54,11 +45,10 @@ struct RegistryView: View {
                                 }
                                 
                             } else {
-                                registryCard
-                                instructionCard
+                                emptyStateView
                             }
                         }
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                     }
                 }
             }
@@ -76,6 +66,41 @@ struct RegistryView: View {
                     RegistrySuccessView()
                 }
             }
+            .sheet(item: $selectedInstruction) { instruction in
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            selectedInstruction = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemGray6))
+                            .frame(width: 56, height: 56)
+                        Image(systemName: instruction.iconName)
+                            .font(.system(size: 24))
+                            .foregroundColor(.black)
+                    }
+                    
+                    Text(instruction.detailedTitle)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text(instruction.detailedDescription)
+                        .font(.body)
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
+                }
+                .padding(24)
+                .presentationDetents([.fraction(0.4), .medium])
+            }
         }
         .onAppear {
             viewModel.bind(repository: registryRepo)
@@ -86,121 +111,254 @@ struct RegistryView: View {
 // MARK: - Components
 private extension RegistryView {
     
-    var registryCard: some View {
-        VStack(spacing: 0) {
+    var emptyStateView: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            headerSection
+            heroCard
+            reasonsSection
+            howItWorksSection
+        }
+        .padding(.bottom, 24)
+    }
+    
+    var headerSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AppStrings.Registry.title)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                Text(AppStrings.Registry.subtitle)
+                    .font(.body)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 16)
+            
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.gray)
+                Text(AppStrings.Registry.searchRegistryPlaceholder)
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+            .padding()
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+            .padding(.horizontal, 16)
+        }
+    }
+    
+    var heroCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(AppStrings.Registry.brandName)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.black)
+                .textCase(.uppercase)
+            
+            Text(AppStrings.Registry.createPerfectRegistry)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.trailing, 40)
             
             Button {
                 tabBarVM.registryPath.append(.create)
             } label: {
-                createRegistryButton
-                    .contentShape(Rectangle())
+                HStack {
+                    Image(systemName: "plus")
+                    Text(AppStrings.Registry.getStarted)
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 14)
+                .background(Color.black)
+                .clipShape(Capsule())
             }
-            .buttonStyle(.plain)
+            .padding(.top, 8)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .cornerRadius(12)
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            ZStack {
+                Color(.systemGray6)
+                Image("Image")
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .opacity(0.5)
+            }
+        )
+        .cornerRadius(16)
         .padding(.horizontal, 16)
     }
     
-    var createRegistryButton: some View {
-        HStack(spacing: 12) {
-            Image(systemName: AppImages.Registry.plus)
-                .foregroundColor(.black)
-            Text(AppStrings.Registry.create)
-                .font(.headline)
-                .foregroundColor(.black)
-            Spacer()
-            Image(systemName: AppImages.Registry.chevron)
-                .foregroundColor(.gray)
+    var reasonsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(AppStrings.Registry.whyRegisterWithUs)
+                .font(.title3)
+                .fontWeight(.bold)
+                .padding(.horizontal, 16)
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                ForEach(viewModel.instructions) { item in
+                    reasonCard(for: item)
+                }
+            }
+            .padding(.horizontal, 16)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
     }
     
-    var instructionCard: some View {
+    func reasonCard(for instruction: RegistryInstruction) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white)
+                    .frame(width: 48, height: 48)
+                Image(systemName: instruction.iconName)
+                    .font(.system(size: 20))
+                    .foregroundColor(.black)
+            }
             
-            Text(AppStrings.Registry.topReasons)
-                .font(.headline)
-                .foregroundColor(.primary)
+            Text(instruction.title)
+                .font(.subheadline)
+                .fontWeight(.bold)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(2)
             
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(viewModel.instructions.enumerated()), id: \.element.id) { index, item in
-                    instructionRow(
-                        title: item.title,
-                        description: item.description
-                    )
-                    if index != viewModel.instructions.count - 1 {
+            Spacer(minLength: 8)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color(.systemGray6))
+        .cornerRadius(16)
+        .onTapGesture {
+            selectedInstruction = instruction
+        }
+    }
+    
+    var howItWorksSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(AppStrings.Registry.howItWorks)
+                .font(.title3)
+                .fontWeight(.bold)
+                .padding(.horizontal, 16)
+            
+            VStack(spacing: 0) {
+                ForEach(Array(viewModel.steps.enumerated()), id: \.element.id) { index, step in
+                    stepRow(for: step)
+                    
+                    if index < viewModel.steps.count - 1 {
                         Divider()
+                            .padding(.leading, 64)
                     }
                 }
             }
+            .padding(.vertical, 8)
+            .background(Color(.systemGray6))
+            .cornerRadius(16)
+            .padding(.horizontal, 16)
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .cornerRadius(12)
-        .padding(.horizontal, 16)
     }
     
-    func instructionRow(title: String, description: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+    func stepRow(for step: RegistryStep) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: 32, height: 32)
+                Text("\(step.number)")
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
+            .padding(.top, 4)
             
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(step.title)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                Text(step.description)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+            }
             
-            Text(description)
-                .font(.footnote)
-                .foregroundColor(.gray)
+            Spacer()
         }
+        .padding(16)
     }
     
     var emptyItemsView: some View {
-        Text(AppStrings.Registry.noItemsAdded)
-            .foregroundColor(.gray)
-            .padding()
+        VStack(spacing: 12) {
+            Image(systemName: "basket")
+                .font(.system(size: 48))
+                .foregroundColor(.gray.opacity(0.5))
+            Text(AppStrings.Registry.noItemsAdded)
+                .foregroundColor(.gray)
+        }
+        .padding(.vertical, 40)
     }
     
     var registryItemsList: some View {
-        VStack(spacing: 12) {
-            ForEach(viewModel.items) { item in
-                RegistryItemRow(
-                    viewModel: RegistryItemRowViewModel(
-                        item: item,
-                        registryRepo: registryRepo,
-                        cartRepo: cartRepo,
-                        tabbarVM: tabBarVM
+        VStack(spacing: 16) {
+            HStack {
+                Text("Your Items")
+                    .font(.headline)
+                Spacer()
+                Text("\(viewModel.items.count) items")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 16)
+
+            VStack(spacing: 12) {
+                ForEach(viewModel.items) { item in
+                    RegistryItemRow(
+                        viewModel: RegistryItemRowViewModel(
+                            item: item,
+                            registryRepo: registryRepo,
+                            cartRepo: cartRepo,
+                            tabbarVM: tabBarVM
+                        )
                     )
-                )
+                }
             }
         }
-        .padding(.horizontal, 16)
     }
     
     var registryHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(spacing: 12) {
             
-            Text(viewModel.displayTitle)
-                .font(.headline)
-            
-            Text(viewModel.displayDate)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            Button("Delete Registry") {
-                viewModel.deleteRegistry(using: registryRepo)
+            VStack(spacing: 4) {
+                Text(viewModel.displayTitle)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                
+                Text(viewModel.displayDate)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
             }
-            .font(.caption)
-            .foregroundColor(.red)
-            .padding(.top, 4)
+            
+            Button(action: {
+                viewModel.deleteRegistry(using: registryRepo)
+            }) {
+                Text("Manage Registry Settings")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.black, lineWidth: 1)
+                    )
+            }
         }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(20)
+        .frame(maxWidth: .infinity)
         .background(Color.white)
-        .cornerRadius(12)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
         .padding(.horizontal, 16)
     }
 }

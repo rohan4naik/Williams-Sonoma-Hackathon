@@ -53,20 +53,40 @@ final class RegistryViewModel: ObservableObject {
         [
             RegistryInstruction(
                 title: AppStrings.Registry.exclusiveProduct,
-                description: AppStrings.Registry.exclusiveProductsDesc
+                description: AppStrings.Registry.exclusiveProductsDesc,
+                iconName: "star",
+                detailedTitle: AppStrings.Registry.exclusiveProduct,
+                detailedDescription: AppStrings.Registry.exclusiveProductsDetailedDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.expertAdvice,
-                description: AppStrings.Registry.expertAdviceDesc
+                description: AppStrings.Registry.expertAdviceDesc,
+                iconName: "message",
+                detailedTitle: AppStrings.Registry.expertAdvice,
+                detailedDescription: AppStrings.Registry.expertAdviceDetailedDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.discountTitle,
-                description: AppStrings.Registry.discountDesc
+                description: AppStrings.Registry.discountDesc,
+                iconName: "dollarsign",
+                detailedTitle: AppStrings.Registry.discountDetailedTitle,
+                detailedDescription: AppStrings.Registry.discountDetailedDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.inStoreTitle,
-                description: AppStrings.Registry.instStoreDesc
+                description: AppStrings.Registry.instStoreDesc,
+                iconName: "house",
+                detailedTitle: AppStrings.Registry.inStoreDetailedTitle,
+                detailedDescription: AppStrings.Registry.inStoreDetailedDesc
             )
+        ]
+    }
+    
+    var steps: [RegistryStep] {
+        [
+            RegistryStep(number: 1, title: AppStrings.Registry.step1Title, description: AppStrings.Registry.step1Desc),
+            RegistryStep(number: 2, title: AppStrings.Registry.step2Title, description: AppStrings.Registry.step2Desc),
+            RegistryStep(number: 3, title: AppStrings.Registry.step3Title, description: AppStrings.Registry.step3Desc)
         ]
     }
     

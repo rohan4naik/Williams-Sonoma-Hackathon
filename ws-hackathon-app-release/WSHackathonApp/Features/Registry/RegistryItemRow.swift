@@ -15,53 +15,78 @@ struct RegistryItemRow: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             
             CustomAsyncImage(url: viewModel.imageURL)
-                .frame(width: 80, height: 80)
-                .cornerRadius(8)
+                .frame(width: 90, height: 90)
+                .cornerRadius(12)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.black.opacity(0.05), lineWidth: 1)
+                )
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 
                 Text(viewModel.title)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium))
                     .lineLimit(2)
+                    .foregroundColor(.primary)
                 
                 Text(viewModel.priceText)
-                    .foregroundColor(.green)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.black)
                 
-                HStack {
-                    Button(action: viewModel.decreaseQty) {
-                        Image(systemName: "minus.circle.fill")
+                HStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        Button(action: viewModel.decreaseQty) {
+                            Image(systemName: "minus")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.black)
+                                .frame(width: 24, height: 24)
+                                .background(Color(.systemGray6))
+                                .clipShape(Circle())
+                        }
+                        
+                        Text(viewModel.quantityText)
+                            .font(.system(size: 13, weight: .medium))
+                            .frame(minWidth: 16)
+                        
+                        Button(action: viewModel.increaseQty) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.black)
+                                .frame(width: 24, height: 24)
+                                .background(Color(.systemGray6))
+                                .clipShape(Circle())
+                        }
                     }
-                    
-                    Text(viewModel.quantityText)
-                        .font(.caption)
-                        .frame(minWidth: 20)
-                    
-                    Button(action: viewModel.increaseQty) {
-                        Image(systemName: "plus.circle.fill")
-                    }
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color(.systemGray6).opacity(0.5))
+                    .cornerRadius(20)
                 }
-                .foregroundColor(.black)
             }
             
             Spacer()
             
-            VStack(spacing: 12) {
+            VStack(spacing: 16) {
                 Button(action: viewModel.addToCart) {
                     Image(systemName: "cart.badge.plus")
+                        .font(.system(size: 18))
+                        .foregroundColor(.black)
                 }
-                .foregroundColor(.black)
                 
                 Button(action: viewModel.removeItem) {
                     Image(systemName: "trash")
+                        .font(.system(size: 16))
+                        .foregroundColor(.red.opacity(0.7))
                 }
-                .foregroundColor(.red)
             }
         }
-        .padding()
+        .padding(12)
         .background(Color.white)
-        .cornerRadius(12)
+        .cornerRadius(16)
+        .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 16)
     }
 }
