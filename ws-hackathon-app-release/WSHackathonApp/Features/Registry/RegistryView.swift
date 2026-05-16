@@ -181,21 +181,42 @@ private extension RegistryView {
     }
     
     var registryHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            
-            Text(viewModel.displayTitle)
-                .font(.headline)
-            
-            Text(viewModel.displayDate)
-                .font(.subheadline)
-                .foregroundColor(.gray)
-            
-            Button("Delete Registry") {
-                viewModel.deleteRegistry(using: registryRepo)
+        HStack(spacing: 16) {
+            // Circular Image
+            Group {
+                if let imageData = viewModel.imageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    ZStack {
+                        Color(.systemGray5)
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.gray.opacity(0.5))
+                    }
+                }
             }
-            .font(.caption)
-            .foregroundColor(.red)
-            .padding(.top, 4)
+            .frame(width: 60, height: 60)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color(UIColor.separator), lineWidth: 0.5))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(viewModel.displayTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                
+                Text(viewModel.displayDate)
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                
+                Button("Delete Registry") {
+                    viewModel.deleteRegistry(using: registryRepo)
+                }
+                .font(.caption)
+                .foregroundColor(.red)
+                .padding(.top, 4)
+            }
+            Spacer()
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
