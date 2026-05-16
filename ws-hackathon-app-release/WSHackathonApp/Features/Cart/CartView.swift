@@ -46,6 +46,45 @@ struct CartView: View {
                                     }
                                 }
                                 .padding(.horizontal)
+                                
+                                // MARK: - Order Summary Section
+                                VStack(alignment: .leading, spacing: 16) {
+                                    Text("Order Summary")
+                                        .font(.headline)
+                                        .padding(.bottom, 4)
+                                    
+                                    VStack(spacing: 12) {
+                                        HStack {
+                                            Text("Subtotal")
+                                                .foregroundColor(.secondary)
+                                            Spacer()
+                                            Text(viewModel.totalPriceText)
+                                        }
+                                        
+                                        HStack {
+                                            Text("Shipping")
+                                                .foregroundColor(.secondary)
+                                            Spacer()
+                                            Text(cartRepository.totalPrice >= 150 ? "FREE" : "$15.00")
+                                                .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .primary)
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        HStack {
+                                            Text("Total")
+                                                .font(.headline)
+                                            Spacer()
+                                            Text("$\(cartRepository.totalPrice + (cartRepository.totalPrice >= 150 ? 0 : 15), specifier: "%.2f")")
+                                                .font(.headline)
+                                                .fontWeight(.bold)
+                                        }
+                                    }
+                                }
+                                .padding(20)
+                                .background(Color(.systemBackground))
+                                .cornerRadius(24)
+                                .padding(.horizontal)
                             }
                             
                             // MARK: - Recommendations
@@ -110,37 +149,9 @@ struct CartView: View {
                         }
                     }
                     
-                    // MARK: - Footer Actions
+                    // MARK: - Fixed Checkout Button
                     if !viewModel.items.isEmpty {
-                        VStack(spacing: 16) {
-                            VStack(spacing: 8) {
-                                HStack {
-                                    Text("Subtotal")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(viewModel.totalPriceText)
-                                }
-                                
-                                HStack {
-                                    Text("Shipping")
-                                        .foregroundColor(.secondary)
-                                    Spacer()
-                                    Text(cartRepository.totalPrice >= 150 ? "FREE" : "$15.00")
-                                        .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .primary)
-                                }
-                                
-                                Divider()
-                                
-                                HStack {
-                                    Text("Total")
-                                        .font(.headline)
-                                    Spacer()
-                                    Text("$\(cartRepository.totalPrice + (cartRepository.totalPrice >= 150 ? 0 : 15), specifier: "%.2f")")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                }
-                            }
-                            
+                        VStack {
                             Button(action: {
                                 let haptic = UIImpactFeedbackGenerator(style: .heavy)
                                 haptic.impactOccurred()
@@ -156,20 +167,19 @@ struct CartView: View {
                                 .background(Color.black)
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
+                            }
                         }
-                    }
-                    .padding(20)
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                    .shadow(color: Color.black.opacity(0.12), radius: 15, x: 0, y: -5)
+                        .padding(20)
+                        .background(Color(.systemBackground))
+                        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
                     }
                 }
+                .navigationTitle("Smart Cart")
+                .navigationBarTitleDisplayMode(.inline)
             }
-            .navigationTitle("Smart Cart")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .onAppear {
-            viewModel.bind(repository: cartRepository)
+            .onAppear {
+                viewModel.bind(repository: cartRepository)
+            }
         }
     }
 }
