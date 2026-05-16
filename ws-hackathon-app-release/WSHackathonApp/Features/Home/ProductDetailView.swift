@@ -93,17 +93,22 @@ struct ProductDetailView: View {
                         
                         HStack(spacing: 16) {
                             ForEach(0..<colors.count, id: \.self) { index in
+                                let isSelected = selectedColor == index
+                                let ringColor: Color = isSelected ? .primary : .clear
+                                let borderColor = Color(UIColor.systemGray4)
+                                
                                 Circle()
                                     .fill(colors[index])
                                     .frame(width: 36, height: 36)
-                                    // Native iOS selection ring
                                     .overlay(
                                         Circle()
-                                            .stroke(selectedColor == index ? Color.primary : Color.clear, lineWidth: 2)
+                                            .stroke(ringColor, lineWidth: 2)
                                             .padding(-4)
                                     )
-                                    // Subtle border for the white option
-                                    .overlay(Circle().stroke(Color(.systemGray4), lineWidth: 1))
+                                    .overlay(
+                                        Circle()
+                                            .stroke(borderColor, lineWidth: 1)
+                                    )
                                     .onTapGesture {
                                         withAnimation(.easeInOut(duration: 0.2)) {
                                             selectedColor = index
@@ -325,7 +330,7 @@ struct ProductDetailView: View {
         // Native bottom bar for 'Add to Cart' & Registry
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 12) {
-                if let registry = registryRepository.currentRegistry {
+                if let registry = registryRepository.activeRegistry {
                     HStack {
                         Image(systemName: "gift.fill")
                             .foregroundColor(.gray)
@@ -341,9 +346,16 @@ struct ProductDetailView: View {
                     Button(action: {
                         let generator = UINotificationFeedbackGenerator()
                         
-                        if registryRepository.isActiveRegistry {
+                        if let activeId = registryRepository.activeRegistryId {
                             generator.notificationOccurred(.success)
-                            registryRepository.addProduct(product)
+                            let item = RegistryItem(
+                                id: product.id,
+                                title: product.title,
+                                price: product.price ?? 0.0,
+                                imageUrl: product.path,
+                                quantity: quantity
+                            )
+                            registryRepository.addProduct(item, to: activeId)
                             
                             withAnimation(.spring()) {
                                 isAddedToRegistry = true

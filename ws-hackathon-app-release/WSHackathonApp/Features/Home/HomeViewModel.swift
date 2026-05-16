@@ -4,7 +4,6 @@
 //
 //  Created by Nilesh Mahajan on 04/04/26.
 //
-
 import Foundation
 import Combine
 
@@ -24,7 +23,8 @@ class HomeViewModel: ObservableObject {
         self.registryRepository = registryRepository
     }
     
-    // Cart
+    // MARK: - Cart
+
     func addToCart(_ product: ProductItem) {
         cartRepository?.add(product: product)
     }
@@ -33,20 +33,30 @@ class HomeViewModel: ObservableObject {
         cartRepository?.remove(productId: product.id)
     }
     
-    // Registry
+    // MARK: - Registry
+
     func addToRegistry(_ product: ProductItem) {
-        registryRepository?.addProduct(product)
+        guard let repo = registryRepository,
+              let activeId = repo.activeRegistryId else { return }
+        let registryItem = RegistryItem(
+            id: product.id,
+            title: product.title,
+            price: product.price ?? 0.0,
+            imageUrl: product.path,
+            quantity: 1
+        )
+        repo.addProduct(registryItem, to: activeId)
     }
     
     func canAddToRegistry(_ product: ProductItem) -> Bool {
-        if let registryRepository, registryRepository.isActiveRegistry {
-            return true
-        }
-        return false
+        guard let repo = registryRepository else { return false }
+        return repo.activeRegistryId != nil
     }
     
     func removeFromRegistry(_ product: ProductItem) {
-        registryRepository?.removeItem(product.id)
+        guard let repo = registryRepository,
+              let activeId = repo.activeRegistryId else { return }
+        repo.removeProduct(productId: product.id, from: activeId)
     }
     
     func quantity(for product: ProductItem) -> Int {
@@ -54,9 +64,16 @@ class HomeViewModel: ObservableObject {
     }
     
     func registryQuantity(for product: ProductItem) -> Int {
-        registryRepository?.currentRegistry?.items.first(where: { $0.id == product.id })?.quantity ?? 0
+        guard let repo = registryRepository,
+              let activeId = repo.activeRegistryId else { return 0 }
+        return repo.registries
+            .first(where: { $0.id == activeId })?
+            .items.first(where: { $0.id == product.id })?
+            .quantity ?? 0
     }
     
+    // MARK: - Products
+
     var filteredProducts: [ProductItem] {
         if searchText.isEmpty {
             return products
