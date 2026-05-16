@@ -24,16 +24,16 @@ struct HeroBannerView: View {
             buttonText: "Explore Collection"
         ),
         HeroItem(
+            title: "Collections",
+            subtitle: "Curated sets designed to bring harmony and style to your home.",
+            imageName: "shop_collections.png",
+            buttonText: "View Collections"
+        ),
+        HeroItem(
             title: "Summer Kitchen",
             subtitle: "Elevate your culinary experience with our premium summer essentials.",
             imageName: "img153m.jpg",
             buttonText: "Shop Summer"
-        ),
-        HeroItem(
-            title: "Shop Collections",
-            subtitle: "Curated sets designed to bring harmony and style to your home.",
-            imageName: "shop_collections.png",
-            buttonText: "View Collections"
         )
     ]
     

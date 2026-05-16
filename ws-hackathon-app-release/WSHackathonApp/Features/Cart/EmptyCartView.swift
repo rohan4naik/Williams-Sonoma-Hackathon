@@ -22,6 +22,12 @@ struct EmptyCartView: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
+            Text("As you add items to your cart, they will appear here. Start shopping to find your favorites.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
             Spacer().frame(height: 20)
         }
         .frame(maxWidth: .infinity)

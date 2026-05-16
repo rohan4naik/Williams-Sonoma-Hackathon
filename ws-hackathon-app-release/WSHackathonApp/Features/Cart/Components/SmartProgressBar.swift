@@ -21,7 +21,7 @@ struct SmartProgressBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "box.truck.fill")
-                    .foregroundColor(progress >= 1.0 ? .green : .blue)
+                    .foregroundColor(progress >= 1.0 ? .green : .black)
                 
                 if progress >= 1.0 {
                     Text("You've unlocked **Free Shipping**!")
@@ -39,7 +39,7 @@ struct SmartProgressBar: View {
                         .frame(height: 8)
                     
                     Capsule()
-                        .fill(LinearGradient(colors: [Color.blue, Color.cyan], startPoint: .leading, endPoint: .trailing))
+                        .fill(LinearGradient(colors: [.black, Color(.systemGray2)], startPoint: .leading, endPoint: .trailing))
                         .frame(width: geo.size.width * CGFloat(progress), height: 8)
                         .animation(.spring(), value: progress)
                 }

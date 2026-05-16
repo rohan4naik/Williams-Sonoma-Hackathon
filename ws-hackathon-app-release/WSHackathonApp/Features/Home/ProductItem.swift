@@ -16,6 +16,7 @@ struct ProductItem: Identifiable, Equatable {
     let collection: String?
     let availability: String?
     let canGiftWrap: Bool
+    let material: String?
     
     init(id: String,
          title: String,
@@ -25,7 +26,8 @@ struct ProductItem: Identifiable, Equatable {
          productType: String? = nil,
          collection: String? = nil,
          availability: String? = "ON_HAND",
-         canGiftWrap: Bool = false) {
+         canGiftWrap: Bool = false,
+         material: String? = nil) {
         self.id = id
         self.title = title
         self.price = price
@@ -35,6 +37,7 @@ struct ProductItem: Identifiable, Equatable {
         self.collection = collection
         self.availability = availability
         self.canGiftWrap = canGiftWrap
+        self.material = material
     }
     
     var imageURL: URL? {
@@ -42,6 +45,37 @@ struct ProductItem: Identifiable, Equatable {
             return URL(string: AppConstants.API.imageBasePath + imageUrl)
         }
         return nil
+    }
+    
+    var computedDescription: String {
+        var desc = "This premium "
+        if let brand = brand, brand != "Williams-Sonoma" {
+            desc += "\(brand) "
+        } else {
+            desc += "Williams-Sonoma "
+        }
+        
+        if let type = productType {
+            desc += "\(type.lowercased()) "
+        } else {
+            desc += "piece "
+        }
+        
+        desc += "is expertly crafted"
+        
+        if let mat = material {
+            desc += " from high-quality \(mat.lowercased())"
+        } else {
+            desc += " from premium materials"
+        }
+        
+        desc += " to ensure lasting durability. Its timeless design seamlessly integrates into your home, adding a touch of elegance and warmth to any space."
+        
+        if let collection = collection {
+            desc += " Part of our exclusive \(collection) collection."
+        }
+        
+        return desc
     }
 
     static func == (lhs: ProductItem, rhs: ProductItem) -> Bool {
@@ -58,6 +92,7 @@ extension ProductItem {
         self.collection = dto.properties?.collection
         self.availability = dto.availability
         self.canGiftWrap = dto.properties?.canGiftWrap == "true"
+        self.material = dto.properties?.material
         
         // Price formatting: use sellingPrice if available, else regularPrice
         if let sellingPrice = dto.price?.sellingPrice {
