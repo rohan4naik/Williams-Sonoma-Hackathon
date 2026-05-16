@@ -15,7 +15,6 @@ final class CartViewModel: ObservableObject {
     @Published private(set) var savedItems: [CartItem] = []
     @Published private(set) var recommendations: [ProductItem] = []
     @Published private(set) var recentlyViewed: [ProductItem] = []
-    @Published private(set) var bestSellers: [ProductItem] = []
     
     private var cancellables = Set<AnyCancellable>()
     private var repository: CartRepository?
@@ -100,7 +99,5 @@ final class CartViewModel: ObservableObject {
         // Simulate recently viewed
         self.recentlyViewed = Array(allProducts.filter { !cartIds.contains($0.id) }.suffix(6).reversed())
         
-        // Simulate best sellers (take first few products)
-        self.bestSellers = Array(allProducts.filter { !cartIds.contains($0.id) }.prefix(6))
     }
 }
