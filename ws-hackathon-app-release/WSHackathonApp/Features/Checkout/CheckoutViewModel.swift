@@ -22,11 +22,28 @@ class CheckoutViewModel: ObservableObject {
     @Published var showingAddressEditor: Bool = false
     @Published var selectedDeliveryMethod: DeliveryMethod = .standard
     @Published var paymentMethod: PaymentMethodType = .applePay
+    @Published var promoCode: String = ""
+    @Published var discountAmount: Double = 0
+    @Published var isPromoApplied: Bool = false
     @Published var isProcessing: Bool = false
     @Published var orderPlaced: Bool = false
     
     var fullAddress: String {
         "\(firstName) \(lastName)\n\(streetAddress)\n\(city), \(state) \(zipCode)\n\(phoneNumber)"
+    }
+    
+    func applyPromoCode() {
+        // Simulation: SAVE10 gives 10% discount, SAVE20 gives 20%
+        if promoCode.uppercased() == "SAVE10" {
+            discountAmount = subtotal * 0.10
+            isPromoApplied = true
+        } else if promoCode.uppercased() == "SAVE20" {
+            discountAmount = subtotal * 0.20
+            isPromoApplied = true
+        } else {
+            discountAmount = 0
+            isPromoApplied = false
+        }
     }
     
     private var cartRepository: CartRepository?
@@ -74,11 +91,11 @@ class CheckoutViewModel: ObservableObject {
     }
     
     var tax: Double {
-        subtotal * 0.085 // 8.5% tax simulation
+        max(subtotal - discountAmount, 0) * 0.085 // 8.5% tax simulation
     }
     
     var total: Double {
-        subtotal + shippingFee + tax
+        max(subtotal - discountAmount, 0) + shippingFee + tax
     }
     
     func placeOrder() {

@@ -79,10 +79,53 @@ struct CheckoutView: View {
                                 }
                             }
                             
+                            // MARK: - Promo Code
+                            CheckoutSection(title: "Promo Code", icon: "tag.fill") {
+                                HStack(spacing: 12) {
+                                    TextField("Enter code (e.g. SAVE10)", text: $viewModel.promoCode)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 12)
+                                        .background(Color(.secondarySystemBackground))
+                                        .cornerRadius(12)
+                                        .autocapitalization(.allCharacters)
+                                    
+                                    Button(action: {
+                                        viewModel.applyPromoCode()
+                                    }) {
+                                        Text("Apply")
+                                            .fontWeight(.bold)
+                                            .padding(.horizontal, 20)
+                                            .padding(.vertical, 12)
+                                            .background(Color.black)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(12)
+                                    }
+                                }
+                                
+                                if viewModel.isPromoApplied {
+                                    Text("Promo code applied successfully!")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                        .padding(.top, 4)
+                                }
+                            }
+                            
                             // MARK: - Order Summary
                             CheckoutSection(title: "Order Summary", icon: "list.bullet.rectangle.fill") {
                                 VStack(spacing: 12) {
                                     SummaryRow(label: "Subtotal", value: viewModel.subtotal)
+                                    
+                                    if viewModel.isPromoApplied {
+                                        HStack {
+                                            Text("Discount")
+                                                .foregroundColor(.green)
+                                            Spacer()
+                                            Text("-$\(viewModel.discountAmount, specifier: "%.2f")")
+                                                .foregroundColor(.green)
+                                        }
+                                        .font(.subheadline)
+                                    }
+                                    
                                     SummaryRow(label: "Shipping", value: viewModel.shippingFee, isFree: viewModel.shippingFee == 0)
                                     SummaryRow(label: "Tax (8.5%)", value: viewModel.tax)
                                     
