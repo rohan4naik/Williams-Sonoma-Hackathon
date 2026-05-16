@@ -13,38 +13,47 @@ struct SavedItemCard: View {
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topTrailing) {
                 CustomAsyncImage(url: item.imageURL)
-                    .frame(height: 120)
-                    .cornerRadius(12)
-                    .clipped()
+                    .frame(height: 160)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
-                Button(action: onRemove) {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray.opacity(0.8))
-                        .padding(6)
+                Button(action: {
+                    haptic.impactOccurred()
+                    onRemove()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(8)
+                        .background(Color.white.opacity(0.9))
+                        .clipShape(Circle())
+                        .padding(10)
                 }
             }
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .tracking(0.5)
+                
                 Text(item.title)
-                    .font(.caption)
-                    .fontWeight(.bold)
+                    .font(.system(size: 13, weight: .bold))
                     .lineLimit(1)
                 
-                Text("$\(item.price, specifier: "%.2f")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                if item.availability == "ON_HAND" {
-                    Text("In Stock")
-                        .font(.system(size: 8, weight: .bold))
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(Color.green.opacity(0.1))
-                        .foregroundColor(.green)
-                        .cornerRadius(4)
+                HStack {
+                    Text("$\(item.price, specifier: "%.2f")")
+                        .font(.system(size: 14, weight: .black, design: .monospaced))
+                    
+                    Spacer()
+                    
+                    if item.availability == "ON_HAND" {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                    }
                 }
             }
             .padding(.horizontal, 4)
@@ -53,21 +62,21 @@ struct SavedItemCard: View {
                 haptic.impactOccurred()
                 onMoveToCart()
             }) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "cart.badge.plus")
-                    Text("Move to Cart")
+                    Text("MOVE TO CART")
                 }
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 10, weight: .black))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
                 .background(Color.black)
                 .foregroundColor(.white)
-                .cornerRadius(8)
+                .clipShape(Capsule())
             }
         }
-        .padding(8)
+        .padding(10)
         .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        .cornerRadius(28)
+        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 }

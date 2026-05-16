@@ -18,129 +18,96 @@ struct CartItemRow: View {
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main Card
+        VStack(spacing: 0) {
             HStack(spacing: 0) {
-                // Left: Image with specific corner radius
+                // MARK: - Product Image
                 CustomAsyncImage(url: item.imageURL)
-                    .frame(width: 100, height: 100)
-                    .clipShape(RoundedRectangle(cornerRadius: 30))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 30)
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                    )
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                     .padding(12)
                 
-                // Center: Info
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.title)
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .lineLimit(2)
+                // MARK: - Details
+                VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .tracking(1)
+                        
+                        Text(item.title)
+                            .font(.system(size: 16, weight: .bold))
+                            .lineLimit(2)
+                            .foregroundColor(.primary)
+                        
+                        Text("$\(item.price, specifier: "%.2f")")
+                            .font(.system(size: 18, weight: .black, design: .monospaced))
+                            .foregroundColor(.primary)
+                    }
+                    
+                    Spacer()
+                    
+                    // MARK: - Bottom Actions Row
+                    HStack(spacing: 16) {
+                        // Quantity Pill
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onRemove()
+                            }) {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
                             
-                            Text("LARGE • 4.5 LITRE")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.gray.opacity(0.8))
+                            Text("\(item.quantity)")
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .frame(minWidth: 16)
+                            
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onAdd()
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .clipShape(Capsule())
                         
                         Spacer()
                         
-                        // Tag box (simulating the "Brushed Copper" tag)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("BRUSHED")
-                            Text("COPPER")
+                        // Bookmark & Delete
+                        HStack(spacing: 18) {
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onSaveForLater()
+                            }) {
+                                Image(systemName: "bookmark")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onDelete()
+                            }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.red)
+                            }
                         }
-                        .font(.system(size: 7, weight: .bold))
-                        .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.5))
-                        .padding(6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 2)
-                                .stroke(Color(red: 0.5, green: 0.6, blue: 0.5).opacity(0.3), lineWidth: 1)
-                        )
                     }
                 }
-                .padding(.trailing, 12)
-                
-                // Right: Vertical Price Section
-                HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 1)
-                        .padding(.vertical, 20)
-                    
-                    Text("$\(item.price, specifier: "%.2f")")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                        .rotationEffect(.degrees(90))
-                        .fixedSize()
-                        .frame(width: 50)
-                }
+                .padding(.vertical, 16)
+                .padding(.trailing, 16)
             }
-            .background(Color(red: 0.11, green: 0.11, blue: 0.11))
-            .cornerRadius(35)
-            .overlay(
-                HStack {
-                    Spacer()
-                    VStack {
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onSaveForLater()
-                        }) {
-                            Image(systemName: "heart")
-                                .font(.system(size: 12))
-                                .foregroundColor(.blue.opacity(0.8))
-                        }
-                        .padding(8)
-                        
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onDelete()
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 12))
-                                .foregroundColor(.red.opacity(0.8))
-                        }
-                        .padding(8)
-                    }
-                }
-                .padding(.trailing, 60) // Positioned before the price section
-                , alignment: .topTrailing
-            )
-            
-            // Bottom: Floating Quantity Control
-            HStack(spacing: 20) {
-                Button(action: {
-                    haptic.impactOccurred()
-                    onRemove()
-                }) {
-                    Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.gray)
-                }
-                
-                Text(String(format: "%02d", item.quantity))
-                    .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                
-                Button(action: {
-                    haptic.impactOccurred()
-                    onAdd()
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 8)
-            .background(Color(red: 0.18, green: 0.18, blue: 0.18))
-            .clipShape(Capsule())
-            .shadow(color: Color.black.opacity(0.3), radius: 5, x: 0, y: 3)
-            .offset(y: 18)
+            .frame(height: 150)
         }
-        .padding(.bottom, 25)
-        .padding(.horizontal, 16)
+        .background(Color.white)
+        .cornerRadius(28)
+        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 }

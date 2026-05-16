@@ -15,7 +15,7 @@ struct CartView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black
+                Color(.systemGray6)
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -89,7 +89,6 @@ struct CartView: View {
                                     HStack {
                                         Text("Save for Later (\(viewModel.savedItems.count))")
                                             .font(.headline)
-                                            .foregroundColor(.white)
                                         
                                         Spacer()
                                         
@@ -127,18 +126,17 @@ struct CartView: View {
                             VStack(spacing: 8) {
                                 HStack {
                                     Text("Subtotal")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.secondary)
                                     Spacer()
                                     Text(viewModel.totalPriceText)
-                                        .foregroundColor(.white)
                                 }
                                 
                                 HStack {
                                     Text("Shipping")
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.secondary)
                                     Spacer()
                                     Text(cartRepository.totalPrice >= 150 ? "FREE" : "$15.00")
-                                        .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .white)
+                                        .foregroundColor(cartRepository.totalPrice >= 150 ? .green : .primary)
                                 }
                                 
                                 Divider()
@@ -146,49 +144,51 @@ struct CartView: View {
                                 HStack {
                                     Text("Total")
                                         .font(.headline)
-                                        .foregroundColor(.white)
                                     Spacer()
                                     Text("$\(cartRepository.totalPrice + (cartRepository.totalPrice >= 150 ? 0 : 15), specifier: "%.2f")")
                                         .font(.headline)
                                         .fontWeight(.bold)
-                                        .foregroundColor(.white)
                                 }
                             }
                             
                             Button(action: {
+                                let haptic = UIImpactFeedbackGenerator(style: .heavy)
+                                haptic.impactOccurred()
                                 // Simulate checkout
                             }) {
                                 HStack {
                                     Text("Checkout")
                                     Image(systemName: "arrow.right")
                                 }
-                                .fontWeight(.semibold)
+                                .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .foregroundColor(.black)
-                                .cornerRadius(12)
+                                .padding(.vertical, 16)
+                                .background(Color.black)
+                                .foregroundColor(.white)
+                                .cornerRadius(14)
                             }
                         }
-                        .padding()
-                        .background(Color(red: 0.1, green: 0.1, blue: 0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                        .shadow(color: Color.white.opacity(0.05), radius: 10, x: 0, y: -5)
+                        .padding(20)
+                        .background(Color(.systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.12), radius: 15, x: 0, y: -5)
                     } else {
                         Button(action: {
+                            let haptic = UIImpactFeedbackGenerator(style: .medium)
+                            haptic.impactOccurred()
                             tabBarVM.selectTab(.home)
                         }) {
                             Text(AppStrings.Cart.emptyButton)
-                                .fontWeight(.semibold)
+                                .fontWeight(.bold)
                                 .frame(maxWidth: .infinity)
-                                .padding()
+                                .padding(.vertical, 16)
                                 .background(Color.black)
                                 .foregroundColor(.white)
-                                .cornerRadius(12)
+                                .cornerRadius(14)
                         }
-                        .padding()
+                        .padding(20)
                         .background(Color(.systemBackground))
-                        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: -5)
+                        .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: -5)
                     }
                 }
             }
