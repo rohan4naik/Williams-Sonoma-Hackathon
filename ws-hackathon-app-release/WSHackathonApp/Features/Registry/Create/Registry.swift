@@ -11,10 +11,13 @@ struct Registry: Identifiable {
     let firstName: String
     let lastName: String
     let event: RegistryEvent
+    let customTitle: String?
     let date: Date
+    let imageData: Data?
     var items: [RegistryItem]
     
     var displayName: String {
-        "\(firstName) \(lastName) - \(event.title)"
+        let eventName = (event == .other && !(customTitle?.isEmpty ?? true)) ? customTitle! : event.title
+        return "\(firstName) \(lastName) - \(eventName)"
     }
 }

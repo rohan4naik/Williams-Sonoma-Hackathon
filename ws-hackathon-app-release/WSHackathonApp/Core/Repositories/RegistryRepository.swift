@@ -21,14 +21,18 @@ final class RegistryRepository: ObservableObject {
     func createRegistry(firstName: String,
                         lastName: String,
                         event: RegistryEvent,
-                        date: Date) {
+                        customTitle: String? = nil,
+                        date: Date,
+                        imageData: Data? = nil) {
         
         currentRegistry = Registry(
             id: UUID(),
             firstName: firstName,
             lastName: lastName,
             event: event,
+            customTitle: customTitle,
             date: date,
+            imageData: imageData,
             items: []
         )
     }

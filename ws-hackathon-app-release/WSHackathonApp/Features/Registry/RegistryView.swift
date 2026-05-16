@@ -327,32 +327,42 @@ private extension RegistryView {
     }
     
     var registryHeader: some View {
-        VStack(spacing: 12) {
+        HStack(spacing: 16) {
+            // Circular Image
+            Group {
+                if let imageData = viewModel.imageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    ZStack {
+                        Color(.systemGray5)
+                        Image(systemName: "camera.fill")
+                            .foregroundColor(.gray.opacity(0.5))
+                    }
+                }
+            }
+            .frame(width: 60, height: 60)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(Color(UIColor.separator), lineWidth: 0.5))
             
-            VStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.displayTitle)
-                    .font(.title3)
-                    .fontWeight(.bold)
+                    .font(.headline)
+                    .lineLimit(1)
                 
                 Text(viewModel.displayDate)
                     .font(.subheadline)
                     .foregroundColor(.gray)
+                
+                Button("Delete Registry") {
+                    viewModel.deleteRegistry(using: registryRepo)
+                }
+                .font(.caption)
+                .foregroundColor(.red)
+                .padding(.top, 4)
             }
-            
-            Button(action: {
-                viewModel.deleteRegistry(using: registryRepo)
-            }) {
-                Text("Manage Registry Settings")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.black, lineWidth: 1)
-                    )
-            }
+            Spacer()
         }
         .padding(20)
         .frame(maxWidth: .infinity)

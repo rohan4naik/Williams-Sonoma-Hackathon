@@ -47,6 +47,10 @@ final class RegistryViewModel: ObservableObject {
         return date.formatted(date: .abbreviated, time: .omitted)
     }
     
+    var imageData: Data? {
+        registry?.imageData
+    }
+    
     // MARK: - Instructions
     
     var instructions: [RegistryInstruction] {
