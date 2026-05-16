@@ -70,6 +70,28 @@ final class CartRepository: ObservableObject {
         saveCart()
     }
     
+    func saveForLater(product: ProductItem) {
+        if !savedItems.contains(where: { $0.id == product.id }) {
+            let newItem = CartItem(
+                id: product.id,
+                title: product.title,
+                price: product.price ?? 0.0,
+                path: product.path,
+                brand: product.brand,
+                collection: product.collection,
+                availability: product.availability,
+                canGiftWrap: product.canGiftWrap,
+                quantity: 1
+            )
+            savedItems.append(newItem)
+            saveCart()
+        }
+    }
+    
+    func isSaved(productId: String) -> Bool {
+        savedItems.contains(where: { $0.id == productId })
+    }
+    
     func moveToCart(productId: String) {
         guard let index = savedItems.firstIndex(where: { $0.id == productId }) else { return }
         let item = savedItems.remove(at: index)
