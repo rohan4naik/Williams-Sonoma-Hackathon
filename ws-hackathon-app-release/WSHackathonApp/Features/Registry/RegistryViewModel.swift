@@ -4,51 +4,77 @@
 //
 //  Created by Nilesh Mahajan on 05/04/26.
 //
-
 import Foundation
 import Combine
 import SwiftUI
-
+ 
 @MainActor
 final class RegistryViewModel: ObservableObject {
     
-    @Published private(set) var registry: Registry?
+    @Published private(set) var allRegistries: [Registry] = []
+    @Published private(set) var activeRegistryId: UUID?
     
+    private var repository: RegistryRepository?
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Bind Repository
     
     func bind(repository: RegistryRepository) {
-        repository.$currentRegistry
+        self.repository = repository
+        
+        repository.$registries
             .receive(on: RunLoop.main)
-            .assign(to: &$registry)
+            .assign(to: &$allRegistries)
+            
+        repository.$activeRegistryId
+            .receive(on: RunLoop.main)
+            .assign(to: &$activeRegistryId)
     }
     
     // MARK: - Computed
     
-    var hasRegistry: Bool {
-        registry != nil
+    var hasRegistries: Bool {
+        !allRegistries.isEmpty
     }
     
-    var hasItems: Bool {
-        !(registry?.items.isEmpty ?? true)
+    var activeRegistry: Registry? {
+        allRegistries.first { $0.id == activeRegistryId }
     }
     
-    var items: [RegistryItem] {
-        registry?.items ?? []
+    func registry(for id: UUID) -> Registry? {
+        allRegistries.first { $0.id == id }
     }
     
+    // Helper computed props for the active registry
     var displayTitle: String {
-        registry?.displayName ?? ""
+        activeRegistry?.displayName ?? ""
     }
     
     var displayDate: String {
-        guard let date = registry?.date else { return "" }
+        guard let date = activeRegistry?.date else { return "" }
         return date.formatted(date: .abbreviated, time: .omitted)
     }
     
-    var imageData: Data? {
-        registry?.imageData
+    var activeImageData: Data? {
+        activeRegistry?.imageData
+    }
+    
+    var activeItems: [RegistryItem] {
+        activeRegistry?.items ?? []
+    }
+    
+    var hasItems: Bool {
+        !activeItems.isEmpty
+    }
+    
+    // MARK: - Actions
+    
+    func deleteRegistry(id: UUID) {
+        repository?.deleteRegistry(id: id)
+    }
+    
+    func setActiveRegistry(id: UUID?) {
+        repository?.setActiveRegistry(id: id)
     }
     
     // MARK: - Instructions
@@ -60,43 +86,51 @@ final class RegistryViewModel: ObservableObject {
                 description: AppStrings.Registry.exclusiveProductsDesc,
                 iconName: "star",
                 detailedTitle: AppStrings.Registry.exclusiveProduct,
-                detailedDescription: AppStrings.Registry.exclusiveProductsDetailedDesc
+                detailedDescription: AppStrings.Registry.exclusiveProductsDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.expertAdvice,
                 description: AppStrings.Registry.expertAdviceDesc,
-                iconName: "message",
+                iconName: "bubble.left",
                 detailedTitle: AppStrings.Registry.expertAdvice,
-                detailedDescription: AppStrings.Registry.expertAdviceDetailedDesc
+                detailedDescription: AppStrings.Registry.expertAdviceDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.discountTitle,
                 description: AppStrings.Registry.discountDesc,
-                iconName: "dollarsign",
-                detailedTitle: AppStrings.Registry.discountDetailedTitle,
-                detailedDescription: AppStrings.Registry.discountDetailedDesc
+                iconName: "dollarsign.circle",
+                detailedTitle: AppStrings.Registry.discountTitle,
+                detailedDescription: AppStrings.Registry.discountDesc
             ),
             RegistryInstruction(
                 title: AppStrings.Registry.inStoreTitle,
                 description: AppStrings.Registry.instStoreDesc,
                 iconName: "house",
-                detailedTitle: AppStrings.Registry.inStoreDetailedTitle,
-                detailedDescription: AppStrings.Registry.inStoreDetailedDesc
+                detailedTitle: AppStrings.Registry.inStoreTitle,
+                detailedDescription: AppStrings.Registry.instStoreDesc
             )
         ]
     }
     
+    // MARK: - Steps
+    
     var steps: [RegistryStep] {
         [
-            RegistryStep(number: 1, title: AppStrings.Registry.step1Title, description: AppStrings.Registry.step1Desc),
-            RegistryStep(number: 2, title: AppStrings.Registry.step2Title, description: AppStrings.Registry.step2Desc),
-            RegistryStep(number: 3, title: AppStrings.Registry.step3Title, description: AppStrings.Registry.step3Desc)
+            RegistryStep(
+                number: 1,
+                title: "Create Your Registry",
+                description: "Sign up and set up your event details."
+            ),
+            RegistryStep(
+                number: 2,
+                title: "Add Your Favorites",
+                description: "Browse and add products you love."
+            ),
+            RegistryStep(
+                number: 3,
+                title: "Share With Guests",
+                description: "Share your registry link with family and friends."
+            )
         ]
-    }
-    
-    // MARK: - Actions
-    
-    func deleteRegistry(using repository: RegistryRepository) {
-        repository.deleteRegistry()
     }
 }

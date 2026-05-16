@@ -46,7 +46,7 @@ struct CreateRegistryView: View {
                                 .scaledToFill()
                         } else {
                             ZStack {
-                                Color.white
+                                Color(.systemGray6)
                                 Image(systemName: "camera.fill")
                                     .font(.system(size: 40))
                                     .foregroundColor(.gray.opacity(0.5))
@@ -54,9 +54,8 @@ struct CreateRegistryView: View {
                         }
                     }
                     .frame(width: 140, height: 140)
-                    .background(Color.white)
+                    .background(Color(.systemGray6))
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(Color(UIColor.separator), lineWidth: 0.5))
                     
                     // Small Add/Edit Button
                     PhotosPicker(selection: $selectedItem, matching: .images) {
@@ -89,9 +88,8 @@ struct CreateRegistryView: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 12)
                         .frame(height: 46)
-                        .background(Color.white)
+                        .background(Color(.systemGray6))
                         .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(UIColor.separator), lineWidth: 0.5))
                         .padding(.vertical, 8)
                         .padding(.horizontal)
                     
@@ -99,9 +97,8 @@ struct CreateRegistryView: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 12)
                         .frame(height: 46)
-                        .background(Color.white)
+                        .background(Color(.systemGray6))
                         .cornerRadius(8)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(UIColor.separator), lineWidth: 0.5))
                         .padding(.vertical, 8)
                         .padding(.horizontal)
                     

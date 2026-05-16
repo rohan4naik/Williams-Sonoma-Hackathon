@@ -13,16 +13,19 @@ import Combine
 final class RegistryItemRowViewModel: ObservableObject {
     
     let item: RegistryItem
+    let registryId: UUID
     
     private let registryRepo: RegistryRepository
     private let cartRepo: CartRepository
     private let tabBarVM: WSTabBarViewModel
 
     init(item: RegistryItem,
+         registryId: UUID,
          registryRepo: RegistryRepository,
          cartRepo: CartRepository,
          tabbarVM: WSTabBarViewModel) {
         self.item = item
+        self.registryId = registryId
         self.registryRepo = registryRepo
         self.cartRepo = cartRepo
         self.tabBarVM = tabbarVM
@@ -37,7 +40,7 @@ final class RegistryItemRowViewModel: ObservableObject {
     }
     
     var quantityText: String {
-        "\(registryRepo.quantity(for: item))"
+        "\(registryRepo.quantity(for: item, in: registryId))"
     }
     
     var imageURL: URL? {
@@ -48,15 +51,15 @@ final class RegistryItemRowViewModel: ObservableObject {
     // MARK: - Actions
     
     func increaseQty() {
-        registryRepo.increaseQty(item.id)
+        registryRepo.increaseQty(item.id, for: registryId)
     }
     
     func decreaseQty() {
-        registryRepo.decreaseQty(item.id)
+        registryRepo.decreaseQty(item.id, for: registryId)
     }
     
     func removeItem() {
-        registryRepo.removeItem(item.id)
+        registryRepo.removeProduct(productId: item.id, from: registryId)
     }
     
     func addToCart() {
@@ -66,7 +69,7 @@ final class RegistryItemRowViewModel: ObservableObject {
             price: item.price,
             path: item.imageUrl
         )
-        let quantityInRegistry = registryRepo.quantity(for: item)
+        let quantityInRegistry = registryRepo.quantity(for: item, in: registryId)
         
         cartRepo.add(product: product, quantity: quantityInRegistry)
         

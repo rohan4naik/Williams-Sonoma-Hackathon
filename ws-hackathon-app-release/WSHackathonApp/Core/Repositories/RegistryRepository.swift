@@ -11,22 +11,29 @@ import Foundation
 @MainActor
 final class RegistryRepository: ObservableObject {
     
-    @Published var currentRegistry: Registry?
+    @Published var registries: [Registry] = []
+    @Published var activeRegistryId: UUID?
     
-    // MARK: - Create
+    // MARK: - Computed
     var isActiveRegistry: Bool {
-        currentRegistry != nil
+        activeRegistryId != nil
     }
     
+    var activeRegistry: Registry? {
+        registries.first { $0.id == activeRegistryId }
+    }
+    
+    // MARK: - Actions
     func createRegistry(firstName: String,
                         lastName: String,
                         event: RegistryEvent,
-                        customTitle: String? = nil,
+                        customTitle: String?,
                         date: Date,
-                        imageData: Data? = nil) {
+                        imageData: Data?) {
         
-        currentRegistry = Registry(
+        let newRegistry = Registry(
             id: UUID(),
+            createdAt: Date(),
             firstName: firstName,
             lastName: lastName,
             event: event,
@@ -35,73 +42,58 @@ final class RegistryRepository: ObservableObject {
             imageData: imageData,
             items: []
         )
+        
+        registries.append(newRegistry)
+        activeRegistryId = newRegistry.id
     }
     
-    // MARK: - Delete Registry
-    
-    func deleteRegistry() {
-        currentRegistry = nil
+    func deleteRegistry(id: UUID) {
+        registries.removeAll { $0.id == id }
+        if activeRegistryId == id {
+            activeRegistryId = nil
+        }
     }
     
-    // MARK: - Add Product
+    func setActiveRegistry(id: UUID?) {
+        activeRegistryId = id
+    }
     
-    func addProduct(_ product: ProductItem) {
-        guard var registry = currentRegistry else { return }
+    // MARK: - Product Management
+    func addProduct(_ product: RegistryItem, to registryId: UUID) {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return }
         
-        let price = product.price ?? 0.0
-        
-        if let index = registry.items.firstIndex(where: { $0.id == product.id }) {
-            registry.items[index].quantity += 1
+        if let itemIndex = registries[index].items.firstIndex(where: { $0.id == product.id }) {
+            registries[index].items[itemIndex].quantity += 1
         } else {
-            registry.items.append(
-                RegistryItem(
-                    id: product.id,
-                    title: product.title,
-                    price: price,
-                    imageUrl: product.path,
-                    quantity: 1
-                )
-            )
-        }
-        
-        currentRegistry = registry
-    }
-    
-    // MARK: - Remove Item
-    
-    func removeItem(_ productId: String) {
-        guard var registry = currentRegistry else { return }
-        
-        registry.items.removeAll { $0.id == productId }
-        currentRegistry = registry
-    }
-    
-    // MARK: - Update Quantity
-    
-    func increaseQty(_ productId: String) {
-        guard var registry = currentRegistry else { return }
-        
-        if let index = registry.items.firstIndex(where: { $0.id == productId }) {
-            registry.items[index].quantity += 1
-            currentRegistry = registry
+            registries[index].items.append(product)
         }
     }
     
-    func decreaseQty(_ productId: String) {
-        guard var registry = currentRegistry else { return }
+    func removeProduct(productId: String, from registryId: UUID) {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        registries[index].items.removeAll { $0.id == productId }
+    }
+    
+    // MARK: - Quantity Helpers
+    func increaseQty(_ productId: String, for registryId: UUID) {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        if let itemIndex = registries[index].items.firstIndex(where: { $0.id == productId }) {
+            registries[index].items[itemIndex].quantity += 1
+        }
+    }
+    
+    func decreaseQty(_ productId: String, for registryId: UUID) {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        guard let itemIndex = registries[index].items.firstIndex(where: { $0.id == productId }) else { return }
         
-        guard let index = registry.items.firstIndex(where: { $0.id == productId }) else { return }
-        
-        if registry.items[index].quantity > 1 {
-            registry.items[index].quantity -= 1
+        if registries[index].items[itemIndex].quantity > 1 {
+            registries[index].items[itemIndex].quantity -= 1
         } else {
-            registry.items.remove(at: index)
+            registries[index].items.remove(at: itemIndex)
         }
-        
-        currentRegistry = registry
     }
     
-    func quantity(for registryItem: RegistryItem) -> Int {
-        currentRegistry?.items.first(where: { $0.id == registryItem.id })?.quantity ?? 0
+    func quantity(for registryItem: RegistryItem, in registryId: UUID) -> Int {
+        registries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.quantity ?? 0
     }
 }

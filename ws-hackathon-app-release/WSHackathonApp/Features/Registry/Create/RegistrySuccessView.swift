@@ -4,7 +4,6 @@
 //
 //  Created by Nilesh Mahajan on 06/04/26.
 //
-
 import Foundation
 import SwiftUI
 
@@ -29,7 +28,7 @@ struct RegistrySuccessView: View {
                 }
                 
                 VStack(spacing: 8) {
-                    Text(registryRepo.currentRegistry?.displayName ?? "")
+                    Text(registryRepo.activeRegistry?.displayName ?? "")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                     
