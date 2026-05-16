@@ -41,9 +41,8 @@ struct RegistrySuccessView: View {
                 
                 Button(action: {
                     tabBarVM.resetRegistryFlow()
-                    tabBarVM.selectTab(.home)
                 }) {
-                    Text("Start Browsing")
+                    Text("View My Registry")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
