@@ -25,20 +25,25 @@ struct CheckoutView: View {
                         VStack(spacing: 24) {
                             // MARK: - Shipping Address
                             CheckoutSection(title: "Shipping Address", icon: "shippingbox.fill") {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(viewModel.fullAddress)
-                                        .font(.subheadline)
-                                        .foregroundColor(.primary)
-                                        .lineSpacing(4)
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(viewModel.fullAddress)
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                            .lineSpacing(4)
+                                    }
+                                    
+                                    Spacer()
                                     
                                     Button(action: {
                                         viewModel.showingAddressEditor = true
                                     }) {
-                                        Text("Edit Address")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
+                                        Image(systemName: "pencil")
+                                            .font(.system(size: 14, weight: .semibold))
                                             .foregroundColor(.blue)
-                                            .padding(.top, 4)
+                                            .padding(8)
+                                            .background(Color.blue.opacity(0.1))
+                                            .clipShape(Circle())
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,22 +70,17 @@ struct CheckoutView: View {
                             // MARK: - Payment Method
                             CheckoutSection(title: "Payment Method", icon: "creditcard.fill") {
                                 VStack(spacing: 16) {
-                                    HStack(spacing: 16) {
-                                        PaymentTypeButton(type: .applePay, isSelected: viewModel.paymentMethod == .applePay) {
-                                            viewModel.paymentMethod = .applePay
-                                        }
-                                        PaymentTypeButton(type: .paypal, isSelected: viewModel.paymentMethod == .paypal) {
-                                            viewModel.paymentMethod = .paypal
-                                        }
+                                    PaymentTypeButton(type: .applePay, isSelected: viewModel.paymentMethod == .applePay) {
+                                        viewModel.paymentMethod = .applePay
+                                    }
+                                    PaymentTypeButton(type: .paypal, isSelected: viewModel.paymentMethod == .paypal) {
+                                        viewModel.paymentMethod = .paypal
                                     }
                                 }
                             }
                             
                             // MARK: - Order Summary
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text("Order Summary")
-                                    .font(.headline)
-                                
+                            CheckoutSection(title: "Order Summary", icon: "list.bullet.rectangle.fill") {
                                 VStack(spacing: 12) {
                                     SummaryRow(label: "Subtotal", value: viewModel.subtotal)
                                     SummaryRow(label: "Shipping", value: viewModel.shippingFee, isFree: viewModel.shippingFee == 0)
@@ -98,9 +98,6 @@ struct CheckoutView: View {
                                     }
                                 }
                             }
-                            .padding(20)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(24)
                             
                             Spacer().frame(height: 100)
                         }
@@ -245,20 +242,25 @@ struct CheckoutSection<Content: View>: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .foregroundColor(.secondary)
+                    .font(.headline)
+                    .foregroundColor(.primary)
                 Text(title)
                     .font(.headline)
-                Spacer()
+                    .foregroundColor(.primary)
             }
+            .padding(.leading, 4)
             
-            content
+            VStack(alignment: .leading, spacing: 16) {
+                content
+            }
+            .padding(20)
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+            .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         }
-        .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(24)
     }
 }
 
@@ -309,14 +311,19 @@ struct PaymentTypeButton: View {
                     Text(" Pay")
                         .font(.system(size: 17, weight: .semibold, design: .default))
                 case .paypal:
-                    Text("Pay")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .italic()
-                        .foregroundColor(Color(red: 0/255, green: 48/255, blue: 135/255))
-                    Text("Pal")
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .italic()
-                        .foregroundColor(Color(red: 0/255, green: 156/255, blue: 222/255))
+                    HStack(spacing: 0) {
+                        Text("Pay")
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .italic()
+                            .foregroundColor(Color(red: 0/255, green: 48/255, blue: 135/255))
+                        Text("Pal")
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .italic()
+                            .foregroundColor(Color(red: 0/255, green: 156/255, blue: 222/255))
+                        Text(" Checkout")
+                            .font(.system(size: 17, weight: .semibold, design: .default))
+                            .foregroundColor(.black)
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
