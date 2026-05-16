@@ -121,4 +121,9 @@ final class CartRepository: ObservableObject {
         items[index].quantity += 1
         saveCart()
     }
+    
+    func clearCart() {
+        items.removeAll()
+        saveCart()
+    }
 }

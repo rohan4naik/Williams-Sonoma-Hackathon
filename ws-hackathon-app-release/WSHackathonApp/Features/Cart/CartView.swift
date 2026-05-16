@@ -152,11 +152,7 @@ struct CartView: View {
                     // MARK: - Fixed Checkout Button
                     if !viewModel.items.isEmpty {
                         VStack {
-                            Button(action: {
-                                let haptic = UIImpactFeedbackGenerator(style: .heavy)
-                                haptic.impactOccurred()
-                                // Simulate checkout
-                            }) {
+                            NavigationLink(destination: CheckoutView()) {
                                 HStack {
                                     Text("Checkout")
                                     Image(systemName: "arrow.right")
@@ -168,6 +164,10 @@ struct CartView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
                             }
+                            .simultaneousGesture(TapGesture().onEnded {
+                                let haptic = UIImpactFeedbackGenerator(style: .heavy)
+                                haptic.impactOccurred()
+                            })
                         }
                         .padding(20)
                         .background(Color(.systemBackground))
