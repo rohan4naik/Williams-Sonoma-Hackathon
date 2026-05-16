@@ -59,16 +59,6 @@ struct CartView: View {
                                 )
                             }
                             
-                            // MARK: - Best Sellers
-                            if !viewModel.bestSellers.isEmpty {
-                                RecommendationCarousel(
-                                    title: "Best Sellers",
-                                    products: viewModel.bestSellers,
-                                    onAdd: { product in
-                                        viewModel.addToCart(product: product)
-                                    }
-                                )
-                            }
                             
                             // MARK: - Recently Viewed
                             if !viewModel.recentlyViewed.isEmpty {
@@ -166,29 +156,12 @@ struct CartView: View {
                                 .background(Color.black)
                                 .foregroundColor(.white)
                                 .cornerRadius(14)
-                            }
                         }
-                        .padding(20)
-                        .background(Color(.systemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.12), radius: 15, x: 0, y: -5)
-                    } else {
-                        Button(action: {
-                            let haptic = UIImpactFeedbackGenerator(style: .medium)
-                            haptic.impactOccurred()
-                            tabBarVM.selectTab(.home)
-                        }) {
-                            Text(AppStrings.Cart.emptyButton)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(Color.black)
-                                .foregroundColor(.white)
-                                .cornerRadius(14)
-                        }
-                        .padding(20)
-                        .background(Color(.systemBackground))
-                        .shadow(color: Color.black.opacity(0.08), radius: 15, x: 0, y: -5)
+                    }
+                    .padding(20)
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .shadow(color: Color.black.opacity(0.12), radius: 15, x: 0, y: -5)
                     }
                 }
             }
