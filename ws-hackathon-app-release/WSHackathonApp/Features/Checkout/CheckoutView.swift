@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import MapKit
 
 struct CheckoutView: View {
     @StateObject private var viewModel = CheckoutViewModel()
@@ -257,6 +258,11 @@ struct ShippingDetailsForm: View {
     @ObservedObject var viewModel: CheckoutViewModel
     @Environment(\.dismiss) var dismiss
     
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 37.7749, longitude: -122.4194),
+        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+    )
+    
     var body: some View {
         NavigationView {
             ScrollView {
@@ -268,7 +274,6 @@ struct ShippingDetailsForm: View {
                             .font(.title3)
                             .fontWeight(.bold)
                     }
-                    .padding(.bottom, 8)
                     
                     VStack(alignment: .leading, spacing: 20) {
                         // First & Last Name
@@ -276,7 +281,41 @@ struct ShippingDetailsForm: View {
                             AddressField(label: "First Name", text: $viewModel.firstName)
                             AddressField(label: "Last Name", text: $viewModel.lastName)
                         }
+                    }
+                    
+                    // MARK: - Map Picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Select Location")
+                            .font(.headline)
                         
+                        ZStack {
+                            Map(coordinateRegion: $region, interactionModes: .all, showsUserLocation: true)
+                                .frame(height: 180)
+                                .cornerRadius(16)
+                            
+                            Image(systemName: "mappin")
+                                .font(.title)
+                                .foregroundColor(.red)
+                                .offset(y: -15)
+                        }
+                        .overlay(
+                            Button(action: {
+                                updateAddressFromMap()
+                            }) {
+                                Text("Use Map Location")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .padding(8)
+                                    .background(Color.black.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .padding(8),
+                            alignment: .bottomTrailing
+                        )
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 20) {
                         // Street Address
                         AddressField(label: "Street Address", text: $viewModel.streetAddress)
                         
@@ -310,6 +349,24 @@ struct ShippingDetailsForm: View {
                     Button("Done") { dismiss() }
                         .fontWeight(.semibold)
                 }
+            }
+        }
+    }
+    
+    private func updateAddressFromMap() {
+        let location = CLLocation(latitude: region.center.latitude, longitude: region.center.longitude)
+        let geocoder = CLGeocoder()
+        
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            guard let placemark = placemarks?.first else { return }
+            
+            DispatchQueue.main.async {
+                viewModel.streetAddress = [placemark.subThoroughfare, placemark.thoroughfare]
+                    .compactMap { $0 }
+                    .joined(separator: " ")
+                viewModel.city = placemark.locality ?? ""
+                viewModel.state = placemark.administrativeArea ?? ""
+                viewModel.zipCode = placemark.postalCode ?? ""
             }
         }
     }
@@ -369,38 +426,6 @@ struct CheckoutSection<Content: View>: View {
             .cornerRadius(20)
             .shadow(color: Color.black.opacity(0.03), radius: 10, x: 0, y: 5)
         }
-    }
-}
-
-struct DeliveryMethodRow: View {
-    let method: CheckoutViewModel.DeliveryMethod
-    let isSelected: Bool
-    let onSelect: () -> Void
-    
-    var body: some View {
-        Button(action: onSelect) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(method.rawValue)
-                        .font(.subheadline)
-                        .fontWeight(isSelected ? .semibold : .regular)
-                    Text(method.price == 0 ? "FREE" : "$\(method.price, specifier: "%.0f").00")
-                        .font(.caption)
-                        .foregroundColor(method.price == 0 ? .green : .secondary)
-                }
-                Spacer()
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .black : .secondary)
-            }
-            .padding()
-            .background(isSelected ? Color.black.opacity(0.03) : Color.clear)
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isSelected ? Color.black : Color(.systemGray4), lineWidth: isSelected ? 1.5 : 0.5)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 }
 
