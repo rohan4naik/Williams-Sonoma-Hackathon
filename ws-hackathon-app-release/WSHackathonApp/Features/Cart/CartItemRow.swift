@@ -27,7 +27,7 @@ struct CartItemRow: View {
                     .padding(12)
                 
                 // MARK: - Details
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
                             .font(.system(size: 10, weight: .bold))
@@ -39,73 +39,48 @@ struct CartItemRow: View {
                             .lineLimit(2)
                             .foregroundColor(.primary)
                         
-                        if let collection = item.collection {
-                            Text(collection)
-                                .font(.system(size: 9, weight: .semibold))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.gray.opacity(0.1))
-                                .cornerRadius(4)
-                        }
-                    }
-                    
-                    // MARK: - Quantity Pill (Moved here)
-                    HStack(spacing: 12) {
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onRemove()
-                        }) {
-                            Image(systemName: "minus")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
-                        
-                        Text("\(item.quantity)")
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .frame(minWidth: 16)
-                        
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onAdd()
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(.systemGray6))
-                    .clipShape(Capsule())
-                    
-                    if item.availability == "BACK_ORDERED" {
-                        Text("BACKORDERED")
-                            .font(.system(size: 8, weight: .black))
-                            .foregroundColor(.orange)
-                    }
-                }
-                .padding(.vertical, 16)
-                .padding(.trailing, 8)
-                
-                Spacer()
-                
-                // MARK: - Vertical Price & Actions
-                HStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color(.systemGray5))
-                        .frame(width: 1)
-                        .padding(.vertical, 20)
-                    
-                    VStack(spacing: 12) {
                         Text("$\(item.price, specifier: "%.2f")")
                             .font(.system(size: 18, weight: .black, design: .monospaced))
-                            .rotationEffect(.degrees(-90))
-                            .fixedSize()
-                            .frame(width: 40, height: 60)
+                            .foregroundColor(.primary)
+                    }
+                    
+                    Spacer()
+                    
+                    // MARK: - Bottom Actions Row
+                    HStack(spacing: 16) {
+                        // Quantity Pill
+                        HStack(spacing: 12) {
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onRemove()
+                            }) {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
+                            
+                            Text("\(item.quantity)")
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .frame(minWidth: 16)
+                            
+                            Button(action: {
+                                haptic.impactOccurred()
+                                onAdd()
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .clipShape(Capsule())
                         
                         Spacer()
                         
-                        VStack(spacing: 16) {
+                        // Bookmark & Delete
+                        HStack(spacing: 18) {
                             Button(action: {
                                 haptic.impactOccurred()
                                 onSaveForLater()
@@ -124,12 +99,12 @@ struct CartItemRow: View {
                                     .foregroundColor(.red)
                             }
                         }
-                        .padding(.bottom, 16)
                     }
-                    .frame(width: 50)
                 }
+                .padding(.vertical, 16)
+                .padding(.trailing, 16)
             }
-            .frame(height: 160)
+            .frame(height: 150)
         }
         .background(Color.white)
         .cornerRadius(28)
