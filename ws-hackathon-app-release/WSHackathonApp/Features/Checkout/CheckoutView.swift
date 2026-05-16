@@ -56,25 +56,73 @@ struct CheckoutView: View {
                             
                             // MARK: - Delivery Method
                             CheckoutSection(title: "Delivery Method", icon: "truck.fill") {
-                                VStack(spacing: 12) {
-                                    ForEach(CheckoutViewModel.DeliveryMethod.allCases, id: \.self) { method in
-                                        DeliveryMethodRow(
-                                            method: method,
-                                            isSelected: viewModel.selectedDeliveryMethod == method,
-                                            onSelect: { viewModel.selectedDeliveryMethod = method }
+                                VStack(spacing: 0) {
+                                    Button(action: {
+                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                            viewModel.showingDeliveryDropdown.toggle()
+                                        }
+                                    }) {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text(viewModel.selectedDeliveryMethod.rawValue)
+                                                    .font(.subheadline)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(.primary)
+                                                Text(viewModel.selectedDeliveryMethod.price == 0 ? "FREE" : "$\(viewModel.selectedDeliveryMethod.price, specifier: "%.0f").00")
+                                                    .font(.caption)
+                                                    .foregroundColor(viewModel.selectedDeliveryMethod.price == 0 ? .green : .secondary)
+                                            }
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 14, weight: .bold))
+                                                .foregroundColor(.secondary)
+                                                .rotationEffect(.degrees(viewModel.showingDeliveryDropdown ? 180 : 0))
+                                        }
+                                        .padding()
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(12)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color(.systemGray4), lineWidth: 1)
                                         )
                                     }
-                                }
-                            }
-                            
-                            // MARK: - Payment Method
-                            CheckoutSection(title: "Payment Method", icon: "creditcard.fill") {
-                                VStack(spacing: 16) {
-                                    PaymentTypeButton(type: .applePay, isSelected: viewModel.paymentMethod == .applePay) {
-                                        viewModel.paymentMethod = .applePay
-                                    }
-                                    PaymentTypeButton(type: .paypal, isSelected: viewModel.paymentMethod == .paypal) {
-                                        viewModel.paymentMethod = .paypal
+                                    .buttonStyle(.plain)
+                                    
+                                    if viewModel.showingDeliveryDropdown {
+                                        VStack(spacing: 0) {
+                                            ForEach(CheckoutViewModel.DeliveryMethod.allCases.filter { $0 != viewModel.selectedDeliveryMethod }, id: \.self) { method in
+                                                Button(action: {
+                                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                                        viewModel.selectedDeliveryMethod = method
+                                                        viewModel.showingDeliveryDropdown = false
+                                                    }
+                                                }) {
+                                                    HStack {
+                                                        VStack(alignment: .leading, spacing: 4) {
+                                                            Text(method.rawValue)
+                                                                .font(.subheadline)
+                                                                .foregroundColor(.primary)
+                                                            Text(method.price == 0 ? "FREE" : "$\(method.price, specifier: "%.0f").00")
+                                                                .font(.caption)
+                                                                .foregroundColor(method.price == 0 ? .green : .secondary)
+                                                        }
+                                                        Spacer()
+                                                    }
+                                                    .padding()
+                                                    .background(Color.clear)
+                                                }
+                                                .buttonStyle(.plain)
+                                                
+                                                if method != CheckoutViewModel.DeliveryMethod.allCases.filter({ $0 != viewModel.selectedDeliveryMethod }).last {
+                                                    Divider()
+                                                        .padding(.horizontal)
+                                                }
+                                            }
+                                        }
+                                        .background(Color(.systemBackground))
+                                        .cornerRadius(12)
+                                        .padding(.top, 8)
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
                                     }
                                 }
                             }
@@ -112,32 +160,49 @@ struct CheckoutView: View {
                             
                             // MARK: - Order Summary
                             CheckoutSection(title: "Order Summary", icon: "list.bullet.rectangle.fill") {
-                                VStack(spacing: 12) {
-                                    SummaryRow(label: "Subtotal", value: viewModel.subtotal)
-                                    
-                                    if viewModel.isPromoApplied {
-                                        HStack {
-                                            Text("Discount")
-                                                .foregroundColor(.green)
-                                            Spacer()
-                                            Text("-$\(viewModel.discountAmount, specifier: "%.2f")")
-                                                .foregroundColor(.green)
+                                VStack(alignment: .leading, spacing: 16) {
+                                    // Item Breakdown
+                                    VStack(spacing: 12) {
+                                        ForEach(viewModel.items) { item in
+                                            CheckoutItemRow(item: item)
                                         }
-                                        .font(.subheadline)
                                     }
-                                    
-                                    SummaryRow(label: "Shipping", value: viewModel.shippingFee, isFree: viewModel.shippingFee == 0)
-                                    SummaryRow(label: "Tax (8.5%)", value: viewModel.tax)
                                     
                                     Divider()
                                     
-                                    HStack {
-                                        Text("Total")
-                                            .font(.headline)
-                                        Spacer()
-                                        Text("$\(viewModel.total, specifier: "%.2f")")
-                                            .font(.title3)
-                                            .fontWeight(.bold)
+                                    // Price Summary
+                                    VStack(spacing: 12) {
+                                        SummaryRow(label: "Subtotal", value: viewModel.subtotal)
+                                        
+                                        if viewModel.isPromoApplied {
+                                            SummaryRow(label: "Discount", value: viewModel.discountAmount, isDiscount: true)
+                                        }
+                                        
+                                        SummaryRow(label: "Shipping", value: viewModel.shippingFee, isFree: viewModel.shippingFee == 0)
+                                        SummaryRow(label: "Tax (8.5%)", value: viewModel.tax)
+                                        
+                                        Divider()
+                                            .padding(.vertical, 4)
+                                        
+                                        HStack {
+                                            Text("Total")
+                                                .font(.system(size: 18, weight: .bold))
+                                            Spacer()
+                                            Text("$\(viewModel.total, specifier: "%.2f")")
+                                                .font(.system(size: 22, weight: .bold))
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // MARK: - Payment Method
+                            CheckoutSection(title: "Payment Method", icon: "creditcard.fill") {
+                                VStack(spacing: 16) {
+                                    PaymentTypeButton(type: .applePay, isSelected: viewModel.paymentMethod == .applePay) {
+                                        viewModel.paymentMethod = .applePay
+                                    }
+                                    PaymentTypeButton(type: .paypal, isSelected: viewModel.paymentMethod == .paypal) {
+                                        viewModel.paymentMethod = .paypal
                                     }
                                 }
                             }
@@ -406,21 +471,23 @@ struct SummaryRow: View {
     let label: String
     let value: Double
     var isFree: Bool = false
+    var isDiscount: Bool = false
     
     var body: some View {
         HStack {
             Text(label)
-                .foregroundColor(.secondary)
+                .foregroundColor(.primary)
             Spacer()
             if isFree {
                 Text("FREE")
                     .foregroundColor(.green)
-                    .fontWeight(.semibold)
+                    .fontWeight(.medium)
             } else {
-                Text("$\(value, specifier: "%.2f")")
+                Text("\(isDiscount ? "-" : "")$\(value, specifier: "%.2f")")
+                    .foregroundColor(isDiscount ? .green : .primary)
             }
         }
-        .font(.subheadline)
+        .font(.system(size: 15))
     }
 }
 
@@ -468,6 +535,39 @@ struct OrderSuccessView: View {
             .padding(.bottom, 20)
         }
         .background(Color(.systemBackground))
+    }
+}
+
+struct CheckoutItemRow: View {
+    let item: CartItem
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            CustomAsyncImage(url: item.imageURL)
+                .frame(width: 60, height: 60)
+                .cornerRadius(8)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                
+                HStack {
+                    Text("Qty: \(item.quantity)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text("$\(item.price * Double(item.quantity), specifier: "%.2f")")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                }
+            }
+        }
     }
 }
 

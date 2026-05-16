@@ -20,6 +20,7 @@ class CheckoutViewModel: ObservableObject {
     @Published var phoneNumber: String = "(415) 555-0123"
     
     @Published var showingAddressEditor: Bool = false
+    @Published var showingDeliveryDropdown: Bool = false
     @Published var selectedDeliveryMethod: DeliveryMethod = .standard
     @Published var paymentMethod: PaymentMethodType = .applePay
     @Published var promoCode: String = ""
