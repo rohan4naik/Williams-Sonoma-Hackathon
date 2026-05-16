@@ -18,124 +18,132 @@ struct CartItemRow: View {
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            let url = item.imageURL
-            // MARK: - Image
-            CustomAsyncImage(url: url)
-                .frame(width: 90, height: 90)
-                .cornerRadius(10)
-                .clipped()
-            
-            // MARK: - Info
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                // MARK: - Product Image
+                CustomAsyncImage(url: item.imageURL)
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .padding(12)
                 
-                Text(item.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .lineLimit(2)
-                
-                Text("$\(item.price, specifier: "%.2f")")
-                    .font(.subheadline)
-                    .fontWeight(.bold)
-                
-                // Availability Nudge
-                if item.availability == "BACK_ORDERED" {
-                    HStack {
-                        Text("BACKORDERED")
-                            .font(.system(size: 8, weight: .bold))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.1))
-                            .foregroundColor(.orange)
-                            .cornerRadius(4)
+                // MARK: - Details
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .letterSpacing(1)
+                    
+                    Text(item.title)
+                        .font(.system(size: 16, weight: .bold))
+                        .lineLimit(2)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 6) {
+                        if let collection = item.collection {
+                            Text(collection)
+                                .font(.system(size: 9, weight: .semibold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.gray.opacity(0.1))
+                                .cornerRadius(4)
+                        }
                         
-                        Text("Suggest moving to Save for Later")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                        if item.canGiftWrap {
+                            Image(systemName: "gift.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.pink)
+                        }
                     }
-                    .padding(.vertical, 2)
-                } else if item.availability == "NLA" {
-                    Text("NO LONGER AVAILABLE")
-                        .font(.system(size: 8, weight: .bold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.red.opacity(0.1))
-                        .foregroundColor(.red)
-                        .cornerRadius(4)
-                        .padding(.vertical, 2)
-                }
-                
-                if item.canGiftWrap {
-                    HStack(spacing: 4) {
-                        Image(systemName: "gift.fill")
-                            .foregroundColor(.pink)
-                            .font(.caption2)
-                        Text("Gift wrapping available")
-                            .font(.system(size: 10))
-                            .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    // Availability
+                    if item.availability == "BACK_ORDERED" {
+                        Text("BACKORDERED")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundColor(.orange)
                     }
-                    .padding(.top, 2)
                 }
+                .padding(.vertical, 16)
+                .padding(.trailing, 8)
                 
                 Spacer()
                 
-                // MARK: - Actions
-                HStack(spacing: 16) {
-                    // Quantity Controls
-                    HStack(spacing: 12) {
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onRemove()
-                        }) {
-                            Image(systemName: "minus.circle.fill")
-                        }
-                        
-                        Text("\(item.quantity)")
-                            .font(.subheadline.monospacedDigit())
-                            .fontWeight(.semibold)
-                            .frame(minWidth: 24)
-                        
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onAdd()
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                        }
+                // MARK: - Vertical Price Tag
+                Rectangle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 1)
+                    .padding(.vertical, 20)
+                
+                VStack {
+                    Text("$\(item.price, specifier: "%.2f")")
+                        .font(.system(size: 18, weight: .black, design: .monospaced))
+                        .rotationEffect(.degrees(-90))
+                        .fixedSize()
+                        .frame(width: 40)
+                }
+                .padding(.trailing, 8)
+            }
+            .frame(height: 140)
+            
+            // MARK: - Bottom Controls
+            HStack {
+                // Quantity Pill
+                HStack(spacing: 15) {
+                    Button(action: {
+                        haptic.impactOccurred()
+                        onRemove()
+                    }) {
+                        Image(systemName: "minus")
+                            .font(.system(size: 12, weight: .bold))
                     }
-                    .font(.title3)
-                    .foregroundColor(.black)
                     
-                    Rectangle()
-                        .fill(Color(.systemGray4))
-                        .frame(width: 1, height: 16)
+                    Text("\(item.quantity)")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                        .frame(minWidth: 20)
                     
-                    HStack(spacing: 16) {
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onSaveForLater()
-                        }) {
-                            Image(systemName: "heart")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.blue)
-                        }
-                        
-                        Button(action: {
-                            haptic.impactOccurred()
-                            onDelete()
-                        }) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.red)
-                        }
+                    Button(action: {
+                        haptic.impactOccurred()
+                        onAdd()
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .bold))
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color(.systemGray6))
+                .clipShape(Capsule())
+                
+                Spacer()
+                
+                // Action Buttons
+                HStack(spacing: 20) {
+                    Button(action: {
+                        haptic.impactOccurred()
+                        onSaveForLater()
+                    }) {
+                        Image(systemName: "heart")
+                            .font(.system(size: 20))
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Button(action: {
+                        haptic.impactOccurred()
+                        onDelete()
+                    }) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 20))
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.trailing, 16)
             }
-            
-            Spacer()
+            .padding(.bottom, 12)
+            .padding(.leading, 12)
         }
-        .padding(16)
         .background(Color.white)
-        .cornerRadius(20)
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 4)
+        .cornerRadius(28)
+        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 5)
     }
 }
