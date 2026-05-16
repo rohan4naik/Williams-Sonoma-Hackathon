@@ -12,6 +12,23 @@ struct WSTabView: View {
     @EnvironmentObject var cartRepository: CartRepository
     @EnvironmentObject var registryRepository: RegistryRepository
     
+    init() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        
+        // Set badge background color to black
+        let badgeAppearance = UITabBarItemAppearance()
+        badgeAppearance.normal.badgeBackgroundColor = .black
+        badgeAppearance.selected.badgeBackgroundColor = .black
+        
+        appearance.stackedLayoutAppearance = badgeAppearance
+        appearance.inlineLayoutAppearance = badgeAppearance
+        appearance.compactInlineLayoutAppearance = badgeAppearance
+        
+        UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+    }
+    
     var body: some View {
         TabView(selection: $viewModel.selectedTab) {
             ForEach(viewModel.tabs, id: \.rawValue) { tab in
@@ -22,6 +39,12 @@ struct WSTabView: View {
                     .tag(tab)
                     .badge(tab == .cart ? (viewModel.cartItemCount > 0 ? viewModel.cartItemCount : 0) : 0)
             }
+        }
+        .onReceive(cartRepository.$items) { items in
+            viewModel.cartItemCount = items.reduce(0) { $0 + $1.quantity }
+        }
+        .onAppear {
+            viewModel.cartItemCount = cartRepository.items.reduce(0) { $0 + $1.quantity }
         }
     }
     
