@@ -37,7 +37,7 @@ struct SavedItemCard: View {
                 Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundColor(.secondary)
-                    .letterSpacing(0.5)
+                    .tracking(0.5)
                 
                 Text(item.title)
                     .font(.system(size: 13, weight: .bold))

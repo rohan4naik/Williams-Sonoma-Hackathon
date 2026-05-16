@@ -31,7 +31,7 @@ struct CartItemRow: View {
                     Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
-                        .letterSpacing(1)
+                        .tracking(1)
                     
                     Text(item.title)
                         .font(.system(size: 16, weight: .bold))
