@@ -26,27 +26,30 @@ struct ProductDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // MARK: - Product Image
                 ZStack(alignment: .bottomTrailing) {
-                    AsyncImage(url: product.imageURL) { phase in
-                        if let image = phase.image {
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } else if phase.error != nil {
-                            ZStack {
-                                Color(.systemGray6)
-                                Image(systemName: "photo")
-                                    .foregroundColor(.gray.opacity(0.4))
-                                    .font(.system(size: 40))
-                            }
-                        } else {
-                            ZStack {
-                                Color(.systemGray6)
-                                ProgressView()
+                    GeometryReader { geo in
+                        AsyncImage(url: product.imageURL) { phase in
+                            if let image = phase.image {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: geo.size.width, height: geo.size.width)
+                                    .clipped()
+                            } else if phase.error != nil {
+                                ZStack {
+                                    Color(.systemGray6)
+                                    Image(systemName: "photo")
+                                        .foregroundColor(.gray.opacity(0.4))
+                                        .font(.system(size: 40))
+                                }
+                            } else {
+                                ZStack {
+                                    Color(.systemGray6)
+                                    ProgressView()
+                                }
                             }
                         }
                     }
-                    .aspectRatio(1, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
                     .clipShape(RoundedCorner(radius: 50, corners: [.bottomLeft, .bottomRight]))
                     
                     // Floating Price Tag
@@ -254,11 +257,13 @@ struct ProductDetailView: View {
                                                             image
                                                                 .resizable()
                                                                 .scaledToFill()
+                                                                .frame(width: 140, height: 140)
+                                                                .clipped()
                                                         } else {
                                                             Color(.systemGray6)
+                                                                .frame(width: 140, height: 140)
                                                         }
                                                     }
-                                                    .frame(width: 140, height: 140)
                                                     .clipShape(RoundedRectangle(cornerRadius: 16))
                                                     
                                                     Text(relatedProduct.title)
