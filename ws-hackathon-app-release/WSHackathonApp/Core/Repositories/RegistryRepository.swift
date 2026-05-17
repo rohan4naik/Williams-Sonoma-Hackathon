@@ -11,7 +11,11 @@ import Foundation
 @MainActor
 final class RegistryRepository: ObservableObject {
     
-    @Published var registries: [Registry] = []
+    @Published var registries: [Registry] = [] {
+        didSet {
+            allUserRegistries[currentUserId] = registries
+        }
+    }
     @Published var activeRegistryId: UUID?
     
     @Published var currentUserId: UUID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
@@ -142,12 +146,18 @@ final class RegistryRepository: ObservableObject {
     }
     
     func quantity(for registryItem: RegistryItem, in registryId: UUID) -> Int {
-        let allRegistries = allUserRegistries.values.flatMap { $0 } + registries
+        let otherUsersRegistries = allUserRegistries
+            .filter { $0.key != currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = registries + otherUsersRegistries
         return allRegistries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.quantity ?? 0
     }
     
     func purchasedQuantity(for registryItem: RegistryItem, in registryId: UUID) -> Int {
-        let allRegistries = allUserRegistries.values.flatMap { $0 } + registries
+        let otherUsersRegistries = allUserRegistries
+            .filter { $0.key != currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = registries + otherUsersRegistries
         return allRegistries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.purchasedQuantity ?? 0
     }
     
