@@ -2,6 +2,8 @@
 //  CollaborationManager.swift
 //  WSHackathonApp
 //
+//  Created by Nilesh Mahajan on 03/04/26.
+//
 
 import Foundation
 import Combine
@@ -12,7 +14,7 @@ final class CollaborationManager: ObservableObject {
     static let shared = CollaborationManager()
     
     // Current user identity (simulated)
-    @Published var currentUserName: String = "Demo User"
+    @Published var currentUserName: String = "Alice Johnson"
     
     // registryId → [Collaborator]
     @Published var collaborators: [UUID: [Collaborator]] = [:]
@@ -28,6 +30,32 @@ final class CollaborationManager: ObservableObject {
     
     private init() {}
     
+    func switchUser(to user: MockUser) {
+        currentUserName = user.name
+    }
+    
+    func joinedRegistries(
+        for userName: String,
+        in registryRepo: RegistryRepository
+    ) -> [Registry] {
+        // Find all registryIds where userName is a collaborator
+        let joinedIds = collaborators
+            .filter { $0.value.contains { $0.name == userName } }
+            .map { $0.key }
+        
+        // Search across all users' registries (excluding active user's entry in allUserRegistries)
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        
+        // Deduplicate and return matches
+        let unique = Array(Set(allRegistries.map { $0.id }))
+            .compactMap { id in allRegistries.first { $0.id == id } }
+        
+        return unique.filter { joinedIds.contains($0.id) }
+    }
+    
     // MARK: - Share Token
     
     func generateToken(for registryId: UUID) -> String {
@@ -37,16 +65,40 @@ final class CollaborationManager: ObservableObject {
         return token
     }
     
-    func registry(for token: String, in registries: [Registry]) -> Registry? {
+    func registry(for token: String, in registryRepo: RegistryRepository) -> Registry? {
         guard let registryId = shareTokens.first(where: { 
             $0.value == token.uppercased() 
         })?.key else { return nil }
-        return registries.first { $0.id == registryId }
+        
+        // Search across ALL users' registries (excluding active user's entry in allUserRegistries)
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        return allRegistries.first { $0.id == registryId }
+    }
+    
+    // MARK: - Helpers
+    
+    func ownerName(for registryId: UUID, in registryRepo: RegistryRepository) -> String {
+        let allMockUsers: [MockUser] = [.alice, .bob, .carol]
+        for (userId, registries) in registryRepo.allUserRegistries {
+            if registries.contains(where: { $0.id == registryId }) {
+                return allMockUsers.first { $0.id == userId }?.name ?? "Owner"
+            }
+        }
+        if registryRepo.registries.contains(where: { $0.id == registryId }) {
+            return allMockUsers.first { $0.id == registryRepo.currentUserId }?.name ?? "Owner"
+        }
+        return "Owner"
     }
     
     // MARK: - Collaborators
     
-    func addCollaborator(name: String, permission: CollabPermission = .limited, to registryId: UUID) {
+    func addCollaborator(name: String, 
+                         permission: CollabPermission = .limited, 
+                         to registryId: UUID,
+                         registryRepo: RegistryRepository) {
         let collaborator = Collaborator(
             id: UUID(),
             name: name,
@@ -58,10 +110,10 @@ final class CollaborationManager: ObservableObject {
         }
         collaborators[registryId]?.append(collaborator)
         
-        // Trigger local notification to owner
+        let owner = ownerName(for: registryId, in: registryRepo)
         sendNotification(
             title: "New Collaborator",
-            body: "\(name) joined your registry!"
+            body: "[For \(owner)] \(name) joined your registry!"
         )
     }
     
@@ -120,9 +172,11 @@ final class CollaborationManager: ObservableObject {
         case .add(let item): actionText = "add \(item.title)"
         case .remove(_, let title): actionText = "remove \(title)"
         }
+        
+        let owner = ownerName(for: registryId, in: registryRepo)
         sendNotification(
             title: "Registry Request",
-            body: "\(collaboratorName) wants to \(actionText)"
+            body: "[For \(owner)] \(collaboratorName) wants to \(actionText)"
         )
     }
     
@@ -154,6 +208,7 @@ final class CollaborationManager: ObservableObject {
         registryId: UUID,
         itemId: String,
         itemTitle: String,
+        contributorName: String,
         amount: Double,
         isFullPayment: Bool
     ) {
@@ -162,7 +217,7 @@ final class CollaborationManager: ObservableObject {
             registryId: registryId,
             itemId: itemId,
             itemTitle: itemTitle,
-            contributorName: currentUserName,
+            contributorName: contributorName,
             amount: amount,
             isFullPayment: isFullPayment,
             date: Date()

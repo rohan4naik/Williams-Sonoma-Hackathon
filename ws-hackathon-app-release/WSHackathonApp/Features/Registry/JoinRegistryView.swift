@@ -8,10 +8,10 @@ import SwiftUI
 struct JoinRegistryView: View {
     @EnvironmentObject var registryRepo: RegistryRepository
     @EnvironmentObject var collabManager: CollaborationManager
+    @EnvironmentObject var mockUserManager: MockUserManager
     @Environment(\.dismiss) var dismiss
     
     @State private var token = ""
-    @State private var yourName = ""
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var showSuccess = false
@@ -35,16 +35,27 @@ struct JoinRegistryView: View {
                     }
                     .padding(.bottom, 8)
                     
-                    // Your name field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Your Name")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        TextField("e.g. Jane Smith", text: $yourName)
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
+                    // Joining User Indicator Card
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(Color.black)
+                            .frame(width: 36, height: 36)
+                            .overlay(
+                                Text(mockUserManager.currentUser.avatarInitials)
+                                    .font(.caption.bold())
+                                    .foregroundColor(.white)
+                            )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Joining as")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(mockUserManager.currentUser.name)
+                                .font(.subheadline.bold())
+                        }
                     }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(12)
                     
                     // Token field
                     VStack(alignment: .leading, spacing: 8) {
@@ -96,28 +107,26 @@ struct JoinRegistryView: View {
     }
     
     private var canJoin: Bool {
-        !token.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !yourName.trimmingCharacters(in: .whitespaces).isEmpty
+        !token.trimmingCharacters(in: .whitespaces).isEmpty
     }
     
     private func joinRegistry() {
-        var trimmedToken = token.trimmingCharacters(in: .whitespaces).uppercased()
+        let trimmedToken = token
+            .trimmingCharacters(in: .whitespaces)
+            .components(separatedBy: "/")
+            .last?
+            .uppercased() ?? ""
         
-        // Extract token from full link "ws://registry/CODE" or "WS://REGISTRY/CODE"
-        if trimmedToken.hasPrefix("WS://REGISTRY/") {
-            trimmedToken = trimmedToken.replacingOccurrences(of: "WS://REGISTRY/", with: "")
-        } else if let url = URL(string: token.trimmingCharacters(in: .whitespaces)),
-                  url.scheme?.lowercased() == "ws" && url.host?.lowercased() == "registry" {
-            trimmedToken = url.lastPathComponent.uppercased()
-        } else if trimmedToken.contains("/") {
-            trimmedToken = trimmedToken.components(separatedBy: "/").last ?? trimmedToken
+        guard let registry = collabManager.registry(for: trimmedToken, in: registryRepo) else {
+            errorMessage = "Invalid invite code or link. Please check and try again."
+            showError = true
+            return
         }
         
-        guard let registry = collabManager.registry(
-            for: trimmedToken,
-            in: registryRepo.registries
-        ) else {
-            errorMessage = "Invalid invite code or link. Please check and try again."
+        // Check if this registry belongs to the current user
+        let currentUserRegistries = registryRepo.registries
+        if currentUserRegistries.contains(where: { $0.id == registry.id }) {
+            errorMessage = "You can't join your own registry."
             showError = true
             return
         }
@@ -125,9 +134,10 @@ struct JoinRegistryView: View {
         showError = false
         joinedRegistryName = registry.displayName
         collabManager.addCollaborator(
-            name: yourName,
+            name: mockUserManager.currentUser.name,
             permission: .limited,
-            to: registry.id
+            to: registry.id,
+            registryRepo: registryRepo
         )
         showSuccess = true
     }

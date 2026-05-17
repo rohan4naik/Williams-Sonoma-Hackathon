@@ -8,6 +8,7 @@ import SwiftUI
 struct ContributionView: View {
     let item: RegistryItem
     let registryId: UUID
+    let currentUserName: String
     @EnvironmentObject var collabManager: CollaborationManager
     @Environment(\.dismiss) var dismiss
     
@@ -107,6 +108,7 @@ struct ContributionView: View {
                             registryId: registryId,
                             itemId: item.id,
                             itemTitle: item.title,
+                            contributorName: currentUserName,
                             amount: item.price,
                             isFullPayment: true
                         )
@@ -149,6 +151,7 @@ struct ContributionView: View {
                                     registryId: registryId,
                                     itemId: item.id,
                                     itemTitle: item.title,
+                                    contributorName: currentUserName,
                                     amount: min(amount, remainingAmount),
                                     isFullPayment: false
                                 )

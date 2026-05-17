@@ -29,6 +29,7 @@ struct RegistryDetailView: View {
     
     // Collaboration UI States
     @EnvironmentObject var collabManager: CollaborationManager
+    @EnvironmentObject var mockUserManager: MockUserManager
     @State private var showingShareSheet = false
     @State private var showingJoinSheet = false
     @State private var shareToken = ""
@@ -39,8 +40,19 @@ struct RegistryDetailView: View {
     @State private var showingPermissionDialog = false
     @State private var showingChat = false
     
+    private var isOwner: Bool {
+        let currentUserId = mockUserManager.currentUser.id
+        let currentUserRegistries = registryRepo.allUserRegistries[currentUserId] 
+            ?? registryRepo.registries
+        return currentUserRegistries.contains { $0.id == registryId }
+    }
+    
     private var registry: Registry? {
-        registryRepo.registries.first { $0.id == registryId }
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        return allRegistries.first { $0.id == registryId }
     }
     
     var searchResults: [ProductItem] {
@@ -225,6 +237,7 @@ struct RegistryDetailView: View {
                                                 .background(Color.white)
                                                 .cornerRadius(12)
                                                 .dropDestination(for: String.self) { itemIds, _ in
+                                                    guard isOwner else { return false }
                                                     withAnimation(.spring(duration: 0.3)) {
                                                         for itemId in itemIds {
                                                             registryRepo.moveItem(itemId: itemId, toCategoryId: nil, in: registryId)
@@ -272,7 +285,7 @@ struct RegistryDetailView: View {
                                                             
                                                             Spacer()
                                                             
-                                                            if category.isCustom {
+                                                            if category.isCustom && isOwner {
                                                                 Button(role: .destructive) {
                                                                     withAnimation(.spring(duration: 0.3)) {
                                                                         registryRepo.deleteCustomCategory(categoryId: category.id, from: registryId)
@@ -316,6 +329,7 @@ struct RegistryDetailView: View {
                                                     .background(Color.white)
                                                     .cornerRadius(12)
                                                     .dropDestination(for: String.self) { itemIds, _ in
+                                                        guard isOwner else { return false }
                                                         withAnimation(.spring(duration: 0.3)) {
                                                             for itemId in itemIds {
                                                                 registryRepo.moveItem(itemId: itemId, toCategoryId: category.id, in: registryId)
@@ -328,23 +342,25 @@ struct RegistryDetailView: View {
                                                 }
                                             }
                                             
-                                            // Add Category Button
-                                            Button {
-                                                showingAddCategorySheet = true
-                                            } label: {
-                                                HStack {
-                                                    Image(systemName: "plus.circle.fill")
-                                                    Text("Add Category")
+                                            if isOwner {
+                                                // Add Category Button
+                                                Button {
+                                                    showingAddCategorySheet = true
+                                                } label: {
+                                                    HStack {
+                                                        Image(systemName: "plus.circle.fill")
+                                                        Text("Add Category")
+                                                    }
+                                                    .font(.headline)
+                                                    .foregroundColor(.black)
+                                                    .frame(maxWidth: .infinity)
+                                                    .padding()
+                                                    .background(Color.white)
+                                                    .cornerRadius(12)
+                                                    .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                                                 }
-                                                .font(.headline)
-                                                .foregroundColor(.black)
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                                .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                                                .padding(.top, 8)
                                             }
-                                            .padding(.top, 8)
                                         }
                                         .padding(.horizontal, 16)
                                     } else {
@@ -387,23 +403,25 @@ struct RegistryDetailView: View {
                             aiSuggestionsSection
                             
                             // Actions
-                            Button(role: .destructive) {
-                                showingDeleteConfirmation = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "trash")
-                                    Text("Delete Registry")
+                            if isOwner {
+                                Button(role: .destructive) {
+                                    showingDeleteConfirmation = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "trash")
+                                        Text("Delete Registry")
+                                    }
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red.opacity(0.1))
+                                    .cornerRadius(12)
                                 }
-                                .font(.headline)
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(12)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 24)
+                                .padding(.bottom, 24)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 24)
-                            .padding(.bottom, 24)
                             
                         } else {
                             // MARK: - Search Results
@@ -417,7 +435,12 @@ struct RegistryDetailView: View {
                                 } else {
                                     VStack(spacing: 12) {
                                         ForEach(searchResults) { product in
-                                            RegistryProductSearchRow(product: product, registryId: registryId)
+                                            RegistryProductSearchRow(
+                                                product: product,
+                                                registryId: registryId,
+                                                collabManager: collabManager,
+                                                currentUserName: mockUserManager.currentUser.name
+                                            )
                                                 .environmentObject(registryRepo)
                                         }
                                     }
@@ -431,20 +454,22 @@ struct RegistryDetailView: View {
                 .background(Color(.systemGray6).opacity(0.5).ignoresSafeArea())
                 .navigationTitle(registry.displayName)
                 .navigationBarTitleDisplayMode(.inline)
-                .searchable(text: $searchText, prompt: "Search products to add...")
+                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search products to add...")
                 .toolbar {
                     // Share button
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            shareToken = collabManager.generateToken(for: registryId)
-                            UIPasteboard.general.string = "ws://registry/\(shareToken)"
-                            withAnimation { copiedToClipboard = true }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                withAnimation { copiedToClipboard = false }
+                    if isOwner {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                shareToken = collabManager.generateToken(for: registryId)
+                                UIPasteboard.general.string = "ws://registry/\(shareToken)"
+                                withAnimation { copiedToClipboard = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation { copiedToClipboard = false }
+                                }
+                            }) {
+                                Image(systemName: copiedToClipboard ? "checkmark" : "square.and.arrow.up")
+                                    .foregroundColor(.black)
                             }
-                        }) {
-                            Image(systemName: copiedToClipboard ? "checkmark" : "square.and.arrow.up")
-                                .foregroundColor(.black)
                         }
                     }
                     
@@ -475,8 +500,12 @@ struct RegistryDetailView: View {
                     .environmentObject(registryRepo)
                 }
                 .sheet(item: $showingContributionFor) { item in
-                    ContributionView(item: item, registryId: registryId)
-                        .environmentObject(collabManager)
+                    ContributionView(
+                        item: item,
+                        registryId: registryId,
+                        currentUserName: mockUserManager.currentUser.name
+                    )
+                    .environmentObject(collabManager)
                 }
                 .sheet(isPresented: $showingChat) {
                     ChatBotView(viewModel: ChatViewModel(registryRepo: registryRepo, cartRepo: cartRepo, registryId: registryId))
@@ -528,7 +557,11 @@ struct RegistryDetailView: View {
             }
         }
         .onChange(of: registryRepo.registries) { _, _ in
-            if registryRepo.registries.first(where: { $0.id == registryId }) == nil {
+            let otherUsersRegistries = registryRepo.allUserRegistries
+                .filter { $0.key != registryRepo.currentUserId }
+                .values.flatMap { $0 }
+            let allRegistries = otherUsersRegistries + registryRepo.registries
+            if allRegistries.first(where: { $0.id == registryId }) == nil {
                 dismiss()
             }
         }
@@ -543,7 +576,9 @@ struct RegistryDetailView: View {
                     registryId: registryId,
                     registryRepo: registryRepo,
                     cartRepo: cartRepo,
-                    tabbarVM: tabBarVM
+                    tabbarVM: tabBarVM,
+                    collabManager: collabManager,
+                    currentUserName: mockUserManager.currentUser.name
                 )
             )
             
@@ -622,7 +657,12 @@ struct RegistryDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(suggestedProducts) { product in
-                        RegistrySuggestionCard(product: product, registryId: registryId)
+                        RegistrySuggestionCard(
+                            product: product,
+                            registryId: registryId,
+                            collabManager: collabManager,
+                            currentUserName: mockUserManager.currentUser.name
+                        )
                             .environmentObject(registryRepo)
                     }
                 }
@@ -834,14 +874,33 @@ struct AddCategorySheet: View {
 struct RegistryProductSearchRow: View {
     let product: ProductItem
     let registryId: UUID
+    let collabManager: CollaborationManager
+    let currentUserName: String
     @EnvironmentObject var registryRepo: RegistryRepository
     
     var quantityInRegistry: Int {
-        guard let registry = registryRepo.registries.first(where: { $0.id == registryId }),
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        guard let registry = allRegistries.first(where: { $0.id == registryId }),
               let item = registry.items.first(where: { $0.id == product.id }) else {
             return 0
         }
         return item.quantity
+    }
+    
+    var currentUserPermission: CollabPermission? {
+        collabManager.collaborators(for: registryId)
+            .first { $0.name == currentUserName }?.permission
+    }
+    
+    var isCollaborator: Bool {
+        currentUserPermission != nil
+    }
+    
+    var canActDirectly: Bool {
+        !isCollaborator || currentUserPermission == .full
     }
     
     var body: some View {
@@ -878,7 +937,17 @@ struct RegistryProductSearchRow: View {
             // Quantity Controls
             HStack(spacing: 12) {
                 Button {
-                    registryRepo.decreaseQty(product.id, for: registryId)
+                    if canActDirectly {
+                        registryRepo.decreaseQty(product.id, for: registryId)
+                    } else {
+                        collabManager.submitRequest(
+                            registryId: registryId,
+                            collaboratorName: currentUserName,
+                            action: .remove(itemId: product.id, itemTitle: product.title),
+                            permission: .limited,
+                            registryRepo: registryRepo
+                        )
+                    }
                 } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 14, weight: .bold))
@@ -898,7 +967,11 @@ struct RegistryProductSearchRow: View {
                     if quantityInRegistry == 0 {
                         // First time adding - Auto-match predefined category
                         let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
-                        let registry = registryRepo.registries.first { $0.id == registryId }
+                        let otherUsersRegistries = registryRepo.allUserRegistries
+                            .filter { $0.key != registryRepo.currentUserId }
+                            .values.flatMap { $0 }
+                        let allRegistries = otherUsersRegistries + registryRepo.registries
+                        let registry = allRegistries.first { $0.id == registryId }
                         let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
                         
                         let newItem = RegistryItem(
@@ -909,10 +982,46 @@ struct RegistryProductSearchRow: View {
                             quantity: 1,
                             categoryId: categoryId
                         )
-                        registryRepo.addProduct(newItem, to: registryId)
+                        if canActDirectly {
+                            registryRepo.addProduct(newItem, to: registryId)
+                        } else {
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
                     } else {
                         // Already added, just increment
-                        registryRepo.increaseQty(product.id, for: registryId)
+                        if canActDirectly {
+                            registryRepo.increaseQty(product.id, for: registryId)
+                        } else {
+                            let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                            let otherUsersRegistries = registryRepo.allUserRegistries
+                                .filter { $0.key != registryRepo.currentUserId }
+                                .values.flatMap { $0 }
+                            let allRegistries = otherUsersRegistries + registryRepo.registries
+                            let registry = allRegistries.first { $0.id == registryId }
+                            let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                            
+                            let newItem = RegistryItem(
+                                id: product.id,
+                                title: product.title,
+                                price: product.price ?? 0.0,
+                                imageUrl: product.path,
+                                quantity: 1,
+                                categoryId: categoryId
+                            )
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
                     }
                 } label: {
                     Image(systemName: "plus")
@@ -935,11 +1044,30 @@ struct RegistryProductSearchRow: View {
 struct RegistrySuggestionCard: View {
     let product: ProductItem
     let registryId: UUID
+    let collabManager: CollaborationManager
+    let currentUserName: String
     @EnvironmentObject var registryRepo: RegistryRepository
     
     var isAdded: Bool {
-        guard let registry = registryRepo.registries.first(where: { $0.id == registryId }) else { return false }
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        guard let registry = allRegistries.first(where: { $0.id == registryId }) else { return false }
         return registry.items.contains(where: { $0.id == product.id })
+    }
+    
+    var currentUserPermission: CollabPermission? {
+        collabManager.collaborators(for: registryId)
+            .first { $0.name == currentUserName }?.permission
+    }
+    
+    var isCollaborator: Bool {
+        currentUserPermission != nil
+    }
+    
+    var canActDirectly: Bool {
+        !isCollaborator || currentUserPermission == .full
     }
     
     var body: some View {
@@ -964,43 +1092,55 @@ struct RegistrySuggestionCard: View {
                     .lineLimit(2)
                     .frame(height: 36, alignment: .topLeading)
                 
-                HStack(alignment: .center) {
-                    if let price = product.price {
-                        Text(price.formatted(.currency(code: "USD")))
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.black)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        if !isAdded {
-                            // Auto-match predefined category
-                            let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
-                            let registry = registryRepo.registries.first { $0.id == registryId }
-                            let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
-                            
-                            let newItem = RegistryItem(
-                                id: product.id,
-                                title: product.title,
-                                price: product.price ?? 0.0,
-                                imageUrl: product.path,
-                                quantity: 1,
-                                categoryId: categoryId
-                            )
-                            registryRepo.addProduct(newItem, to: registryId)
-                        }
-                    } label: {
-                        Image(systemName: isAdded ? "checkmark" : "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(isAdded ? .gray : .black)
-                            .frame(width: 28, height: 28)
-                            .background(Color(.systemGray6))
-                            .clipShape(Circle())
-                    }
-                    .disabled(isAdded)
+                if let price = product.price {
+                    Text(price.formatted(.currency(code: "USD")))
+                        .font(.system(size: 14, weight: .bold))
                 }
             }
+            .padding(.horizontal, 8)
+            
+            // Add Button
+            Button {
+                if !isAdded {
+                    // Auto-match predefined category
+                    let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                    let otherUsersRegistries = registryRepo.allUserRegistries
+                        .filter { $0.key != registryRepo.currentUserId }
+                        .values.flatMap { $0 }
+                    let allRegistries = otherUsersRegistries + registryRepo.registries
+                    let registry = allRegistries.first { $0.id == registryId }
+                    let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                    
+                    let newItem = RegistryItem(
+                        id: product.id,
+                        title: product.title,
+                        price: product.price ?? 0.0,
+                        imageUrl: product.path,
+                        quantity: 1,
+                        categoryId: categoryId
+                    )
+                    if canActDirectly {
+                        registryRepo.addProduct(newItem, to: registryId)
+                    } else {
+                        collabManager.submitRequest(
+                            registryId: registryId,
+                            collaboratorName: currentUserName,
+                            action: .add(newItem),
+                            permission: .limited,
+                            registryRepo: registryRepo
+                        )
+                    }
+                }
+            } label: {
+                Text(isAdded ? "Added" : "Add to Registry")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(isAdded ? .gray : .white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 32)
+                    .background(isAdded ? Color(.systemGray6) : Color.black)
+                    .cornerRadius(8)
+            }
+            .disabled(isAdded)
             .padding(.horizontal, 10)
             .padding(.bottom, 12)
         }
