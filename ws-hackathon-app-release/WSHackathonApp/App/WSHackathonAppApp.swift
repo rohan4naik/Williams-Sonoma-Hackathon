@@ -20,6 +20,10 @@ struct WSHackathonAppApp: App {
         CollaborationManager.shared.requestNotificationPermission()
     }
     
+    init() {
+        NotificationManager.shared.requestPermission()
+    }
+    
     var body: some Scene {
         WindowGroup {
             WSTabView()

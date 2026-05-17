@@ -410,10 +410,10 @@ struct CheckoutSection<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.headline)
+                    .font(.title3.bold())
                     .foregroundColor(.primary)
                 Text(title)
-                    .font(.headline)
+                    .font(.title3.bold())
                     .foregroundColor(.primary)
             }
             .padding(.leading, 4)

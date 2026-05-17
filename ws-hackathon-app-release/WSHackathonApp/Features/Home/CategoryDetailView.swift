@@ -1,26 +1,27 @@
+//
+//  CategoryDetailView.swift
+//  WSHackathonApp
+//
+
 import SwiftUI
 
-struct HeroDetailView: View {
-    let title: String
-    let subtitle: String
-    let products: [ProductItem]
-    
+struct CategoryDetailView: View {
+    let categoryName: String
+    let allProducts: [ProductItem]
+
     @EnvironmentObject var cartRepository: CartRepository
     @EnvironmentObject var registryRepository: RegistryRepository
     @EnvironmentObject var tabBarVM: WSTabBarViewModel
-    
-    let columns = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
-    ]
     
     @State private var searchText = ""
     @State private var showFilterSheet = false
     @State private var selectedSort: SortOption = .newest
     @State private var maxPrice: Double = 1000
     
+    @State private var filteredProducts: [ProductItem] = []
+    
     private var searchResults: [ProductItem] {
-        var results = products
+        var results = filteredProducts
         
         if !searchText.isEmpty {
             results = results.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
@@ -30,7 +31,7 @@ struct HeroDetailView: View {
         
         switch selectedSort {
         case .newest:
-            break
+            break // Default order
         case .priceHighToLow:
             results.sort { ($0.price ?? 0.0) > ($1.price ?? 0.0) }
         case .priceLowToHigh:
@@ -39,29 +40,32 @@ struct HeroDetailView: View {
         
         return results
     }
-    
+
+    let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(subtitle)
-                    .font(.system(.subheadline, design: .serif))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                
+            VStack(alignment: .leading, spacing: 0) {
+                // MARK: - Count banner
                 HStack {
-                    Text("\(searchResults.count) items")
+                    Text("\(filteredProducts.count) items")
                         .font(.system(.subheadline, design: .serif))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 8)
-                
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+
+                // MARK: - Product Grid
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(searchResults) { product in
                         NavigationLink(destination: ProductDetailView(
                             product: product,
-                            relatedProducts: Array(products.filter { $0.id != product.id }.shuffled().prefix(6))
+                            relatedProducts: Array(filteredProducts.filter { $0.id != product.id }.shuffled().prefix(6))
                         )) {
                             ProductCardView(
                                 product: product,
@@ -83,10 +87,11 @@ struct HeroDetailView: View {
                     }
                 }
                 .padding(.horizontal)
+
+                Spacer(minLength: 32)
             }
-            .padding(.vertical)
         }
-        .navigationTitle(title)
+        .navigationTitle(categoryName)
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search products")
         .toolbar {
@@ -104,21 +109,31 @@ struct HeroDetailView: View {
                 .presentationDetents([.medium, .large])
         }
         .background(Color(.systemGroupedBackground))
+        .onAppear {
+            if filteredProducts.isEmpty {
+                let matched = allProducts.filter { product in
+                    guard let type = product.productType else { return false }
+                    return type.localizedCaseInsensitiveContains(categoryName) ||
+                           categoryName.localizedCaseInsensitiveContains(type)
+                }
+                filteredProducts = matched.isEmpty ? Array(allProducts.shuffled().prefix(12)) : matched
+            }
+        }
     }
-    
+
     // MARK: - Cart Helpers
     private func addToCart(_ product: ProductItem) {
         cartRepository.add(product: product)
     }
-    
+
     private func removeFromCart(_ product: ProductItem) {
         cartRepository.remove(productId: product.id)
     }
-    
+
     private func quantity(for product: ProductItem) -> Int {
         cartRepository.items.first(where: { $0.id == product.id })?.quantity ?? 0
     }
-    
+
     // MARK: - Registry Helpers
     private func addToRegistry(_ product: ProductItem) {
         guard let activeId = registryRepository.activeRegistryId else { return }
@@ -131,16 +146,16 @@ struct HeroDetailView: View {
         )
         registryRepository.addProduct(registryItem, to: activeId)
     }
-    
+
     private func canAddToRegistry(_ product: ProductItem) -> Bool {
         return registryRepository.activeRegistryId != nil
     }
-    
+
     private func removeFromRegistry(_ product: ProductItem) {
         guard let activeId = registryRepository.activeRegistryId else { return }
         registryRepository.removeProduct(productId: product.id, from: activeId)
     }
-    
+
     private func registryQuantity(for product: ProductItem) -> Int {
         guard let activeId = registryRepository.activeRegistryId else { return 0 }
         return registryRepository.registries

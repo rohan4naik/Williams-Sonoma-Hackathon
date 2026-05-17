@@ -18,6 +18,11 @@ struct CartItem: Identifiable, Codable, Equatable {
     var quantity: Int
     var isSaved: Bool = false
     
+    // Smart Insights for saved items
+    var priceDropText: String? = nil
+    var lowStockText: String? = nil
+    var isPopular: Bool? = false
+    
     var imageURL: URL? {
         ProductImageResolver.resolveImageURL(forTitle: title, path: path)
     }

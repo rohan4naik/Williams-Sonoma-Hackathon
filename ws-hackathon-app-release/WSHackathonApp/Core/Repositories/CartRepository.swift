@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 @MainActor
 final class CartRepository: ObservableObject {
@@ -70,6 +71,10 @@ final class CartRepository: ObservableObject {
         // Add to savedItems if not already there
         if !savedItems.contains(where: { $0.id == item.id }) {
             savedItems.append(item)
+            NotificationManager.shared.scheduleNotification(
+                title: "Saved for Later! 🍳",
+                body: "We've safely saved '\(item.title)'. We'll alert you the moment the price drops or stock runs low!"
+            )
         }
         
         // Remove from active cart
@@ -94,6 +99,10 @@ final class CartRepository: ObservableObject {
             )
             savedItems.append(newItem)
             saveCart()
+            NotificationManager.shared.scheduleNotification(
+                title: "Saved for Later! 🍳",
+                body: "We've safely saved '\(product.title)'. We'll alert you the moment the price drops or stock runs low!"
+            )
         }
     }
     
@@ -137,6 +146,67 @@ final class CartRepository: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: savedKey),
            let decoded = try? JSONDecoder().decode([CartItem].self, from: data) {
             savedItems = decoded
+        }
+        
+        // Seed high-fidelity sample items with smart badges to wow the user
+        if savedItems.isEmpty || !savedItems.contains(where: { $0.id == "2453926" }) {
+            savedItems = [
+                CartItem(
+                    id: "2453926",
+                    title: "Staub Enameled Cast Iron Round Dutch Oven, 7-Qt., Basil",
+                    price: 299.95,
+                    path: "/img83m.jpg",
+                    brand: "Staub",
+                    collection: "Staub Cast Iron",
+                    availability: "ON_HAND",
+                    canGiftWrap: true,
+                    quantity: 1,
+                    isSaved: true,
+                    priceDropText: "Save 36%",
+                    lowStockText: nil,
+                    isPopular: false
+                ),
+                CartItem(
+                    id: "2505456",
+                    title: "Williams Sonoma End-Grain Cutting Board, Acacia, 15\" X 20\"",
+                    price: 129.95,
+                    path: "/img17m.jpg",
+                    brand: "Williams Sonoma",
+                    collection: "Acacia Essentials",
+                    availability: "LOW_STOCK",
+                    canGiftWrap: true,
+                    quantity: 1,
+                    isSaved: true,
+                    priceDropText: nil,
+                    lowStockText: "Only 2 left!",
+                    isPopular: false
+                ),
+                CartItem(
+                    id: "8381456",
+                    title: "Cuisinart PerfecTemp Programmable Coffee Maker with Glass Carafe, 14-cup",
+                    price: 119.95,
+                    path: "/img122m.jpg",
+                    brand: "Cuisinart",
+                    collection: "Cuisinart Coffee",
+                    availability: "ON_HAND",
+                    canGiftWrap: true,
+                    quantity: 1,
+                    isSaved: true,
+                    priceDropText: nil,
+                    lowStockText: nil,
+                    isPopular: true
+                )
+            ]
+            saveCart()
+        }
+        
+        // Trigger simulated price drop push notification after 5 seconds to show off the smart alerting system!
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            NotificationManager.shared.scheduleNotification(
+                title: "Price Drop Alert! 📉",
+                body: "Great news! The 'Staub Enameled Cast Iron Round Dutch Oven, Basil' you saved has dropped 36% in price! Complete checkout now for $299.95.",
+                delay: 0.1
+            )
         }
     }
 
