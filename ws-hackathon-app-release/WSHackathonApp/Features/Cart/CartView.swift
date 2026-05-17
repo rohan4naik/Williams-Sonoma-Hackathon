@@ -191,8 +191,8 @@ struct CartView: View {
                         .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -5)
                     }
                 }
-                .navigationTitle("Smart Cart")
-                .navigationBarTitleDisplayMode(.inline)
+                .navigationTitle("Cart")
+                .navigationBarTitleDisplayMode(.large)
             }
             .onAppear {
                 viewModel.bind(repository: cartRepository)
