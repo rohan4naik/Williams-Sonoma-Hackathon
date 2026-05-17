@@ -353,18 +353,6 @@ private extension RegistryView {
                     .foregroundColor(.gray)
             }
             .padding(.horizontal, 16)
-            
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.gray)
-                Text(AppStrings.Registry.searchRegistryPlaceholder)
-                    .foregroundColor(.gray)
-                Spacer()
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-            .padding(.horizontal, 16)
         }
     }
     
@@ -464,6 +452,7 @@ private extension RegistryView {
                     }
                 }
             }
+            .padding(.vertical, 8)
             .background(Color(.systemGray6))
             .cornerRadius(16)
             .padding(.horizontal, 16)
@@ -488,6 +477,8 @@ private extension RegistryView {
                     .font(.caption)
                     .foregroundColor(.gray)
             }
+            
+            Spacer()
         }
         .padding()
     }

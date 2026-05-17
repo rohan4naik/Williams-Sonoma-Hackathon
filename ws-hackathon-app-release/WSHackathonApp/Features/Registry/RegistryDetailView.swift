@@ -518,7 +518,7 @@ struct RegistryDetailView: View {
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.white)
                             .padding()
-                            .background(Color.purple)
+                            .background(Color.black)
                             .clipShape(Circle())
                             .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
                     }
@@ -641,7 +641,7 @@ struct RegistryDetailView: View {
             
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                    .foregroundColor(.purple)
+                    .foregroundColor(.black)
                     .font(.title3)
                 Text("AI Suggestions")
                     .font(.title3)
@@ -1071,7 +1071,7 @@ struct RegistrySuggestionCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Product Image
             AsyncImage(url: product.imageURL) { phase in
                 if let image = phase.image {
@@ -1086,62 +1086,65 @@ struct RegistrySuggestionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             
             // Product Info
-            VStack(alignment: .leading, spacing: 8) {
-                Text(product.title)
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(2)
-                    .frame(height: 36, alignment: .topLeading)
-                
+            Text(product.title)
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(2)
+                .foregroundColor(.black)
+                .frame(height: 36, alignment: .topLeading)
+                .padding(.horizontal, 8)
+            
+            // Price & Add Button (HStack like Screenshot 2)
+            HStack(alignment: .center) {
                 if let price = product.price {
                     Text(price.formatted(.currency(code: "USD")))
                         .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.black)
                 }
+                
+                Spacer()
+                
+                Button {
+                    if !isAdded {
+                        // Auto-match predefined category
+                        let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                        let otherUsersRegistries = registryRepo.allUserRegistries
+                            .filter { $0.key != registryRepo.currentUserId }
+                            .values.flatMap { $0 }
+                        let allRegistries = otherUsersRegistries + registryRepo.registries
+                        let registry = allRegistries.first { $0.id == registryId }
+                        let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                        
+                        let newItem = RegistryItem(
+                            id: product.id,
+                            title: product.title,
+                            price: product.price ?? 0.0,
+                            imageUrl: product.path,
+                            quantity: 1,
+                            categoryId: categoryId
+                        )
+                        if canActDirectly {
+                            registryRepo.addProduct(newItem, to: registryId)
+                        } else {
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
+                    }
+                } label: {
+                    Image(systemName: isAdded ? "checkmark" : "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(isAdded ? .gray : .black)
+                        .frame(width: 32, height: 32)
+                        .background(Color(.systemGray5))
+                        .clipShape(Circle())
+                }
+                .disabled(isAdded)
             }
             .padding(.horizontal, 8)
-            
-            // Add Button
-            Button {
-                if !isAdded {
-                    // Auto-match predefined category
-                    let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
-                    let otherUsersRegistries = registryRepo.allUserRegistries
-                        .filter { $0.key != registryRepo.currentUserId }
-                        .values.flatMap { $0 }
-                    let allRegistries = otherUsersRegistries + registryRepo.registries
-                    let registry = allRegistries.first { $0.id == registryId }
-                    let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
-                    
-                    let newItem = RegistryItem(
-                        id: product.id,
-                        title: product.title,
-                        price: product.price ?? 0.0,
-                        imageUrl: product.path,
-                        quantity: 1,
-                        categoryId: categoryId
-                    )
-                    if canActDirectly {
-                        registryRepo.addProduct(newItem, to: registryId)
-                    } else {
-                        collabManager.submitRequest(
-                            registryId: registryId,
-                            collaboratorName: currentUserName,
-                            action: .add(newItem),
-                            permission: .limited,
-                            registryRepo: registryRepo
-                        )
-                    }
-                }
-            } label: {
-                Text(isAdded ? "Added" : "Add to Registry")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(isAdded ? .gray : .white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 32)
-                    .background(isAdded ? Color(.systemGray6) : Color.black)
-                    .cornerRadius(8)
-            }
-            .disabled(isAdded)
-            .padding(.horizontal, 10)
             .padding(.bottom, 12)
         }
         .frame(width: 140)

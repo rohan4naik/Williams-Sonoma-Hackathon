@@ -44,9 +44,24 @@ class ChatViewModel: ObservableObject {
         1. NEVER answer questions unrelated to Williams-Sonoma, cooking, home goods, events, or the user's registry.
         2. If the user asks an off-topic question, politely refuse and guide them back to their registry.
         3. Keep your answers concise, friendly, and helpful.
-        4. When suggesting a product, ALWAYS format it exactly like this so the app can render it (use absolute image URLs if possible, or placeholder):
-           [PRODUCT: "Product Title" | 150.00 | https://example.com/image.png]
+        4. When suggesting a product, ALWAYS check if one of the real catalog items below fits the recommendation. If so, you MUST recommend that item using its exact title, price, and image path.
+        5. When suggesting a product, ALWAYS format it exactly like this so the app can render it:
+           [PRODUCT: "Product Title" | 150.00 | /img5m.jpg]
            
+        AVAILABLE REAL PRODUCTS CATALOG:
+        You MUST prioritize recommending these real catalog items whenever appropriate for the user's needs. Use their exact titles, prices, and image paths:
+        
+        1. "Williams Sonoma End-Grain Cutting Board, Acacia" | Price: 129.95 | ImagePath: /img17m.jpg
+        2. "Williams Sonoma Board Oil" | Price: 10.95 | ImagePath: /img27m.jpg
+        3. "Hold Everything Lidded Ceramic Bowl, Ashwood, 12\"" | Price: 89.95 | ImagePath: /img64m.jpg
+        4. "Apilco Tradition Porcelain Cup & Saucer" | Price: 34.95 | ImagePath: /img95m.jpg
+        5. "Staub Enameled Cast Iron Round Dutch Oven, 7-Qt., Basil" | Price: 299.95 | ImagePath: /img83m.jpg
+        6. "Cuisinart PerfecTemp Programmable Coffee Maker, 14-cup" | Price: 119.95 | ImagePath: /img122m.jpg
+        7. "Hold Everything Lazy Susan, Small, Walnut Finish, 10\"" | Price: 59.95 | ImagePath: /img153m.jpg
+        8. "Williams Sonoma Organic House Extra Virgin Olive Oil" | Price: 38.95 | ImagePath: /img4m.jpg
+        9. "Dorset Martini Glasses, Set of 4" | Price: 179.80 | ImagePath: /img236m.jpg
+        10. "Staub Enameled Cast Iron Traditional Deep Skillet, 8 1/2\", Citron" | Price: 180.00 | ImagePath: /img5m.jpg
+
         USER CONTEXT:
         Event Type: \(registry.event.title)
         Current Registry Items: \(itemNames.isEmpty ? "None yet." : itemNames)
@@ -81,7 +96,7 @@ class ChatViewModel: ObservableObject {
     // Parses a message string into mixed Text and Product elements
     func parseMessage(_ content: String) -> [ChatElement] {
         var elements: [ChatElement] = []
-        let pattern = "\\[PRODUCT:\\s*\"?([^\"]+)\"?\\s*\\|\\s*\\$?([0-9.]+)\\s*\\|\\s*([^\\]]+)\\]"
+        let pattern = "\\[(?:PRODUCT:\\s*)?\"?([^|]+?)\"?\\s*\\|\\s*\\$?([0-9.]+)\\s*\\|\\s*([^\\]]+)\\]"
         
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return [.text(content)]
@@ -107,7 +122,14 @@ class ChatViewModel: ObservableObject {
                let priceRange = Range(match.range(at: 2), in: content),
                let urlRange = Range(match.range(at: 3), in: content) {
                 
-                let title = String(content[titleRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                var title = String(content[titleRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                // Clean wrapping quotes from start/end if present
+                if title.hasPrefix("\"") && title.hasSuffix("\"") {
+                    title = String(title.dropFirst().dropLast())
+                }
+                // Clean up escaped quotes inside the title
+                title = title.replacingOccurrences(of: "\\\"", with: "\"")
+                
                 let priceStr = String(content[priceRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                 let url = String(content[urlRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                 

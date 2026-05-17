@@ -17,7 +17,7 @@ struct ChatMessageBubble: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 32, height: 32)
-                    .background(Color.purple)
+                    .background(Color.black)
                     .clipShape(Circle())
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     .padding(.top, 4)

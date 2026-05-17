@@ -48,35 +48,31 @@ struct ProfileContentView: View {
         List {
             // ACCOUNT INFO
             Section {
-                HStack(spacing: 16) {
-                    Circle()
-                        .fill(Color.black)
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Text(initials)
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        )
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
+                NavigationLink(destination: ProfileEditView()
+                    .environmentObject(profileRepo)
+                    .environmentObject(mockUserManager)) {
+                    HStack(spacing: 16) {
+                        Circle()
+                            .fill(Color.black)
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Text(initials)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(name)
                                 .font(.headline)
-                            Spacer()
-                            NavigationLink(destination: ProfileEditView()
-                                .environmentObject(profileRepo)
-                                .environmentObject(mockUserManager)) {
-                                Text("Edit")
-                                    .font(.subheadline)
-                                    .foregroundColor(.blue)
-                            }
+                                .foregroundColor(.primary)
+                            Text(email)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text(mockUserManager.dataForCurrentUser().phoneNumber)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
-                        Text(email)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        Text(mockUserManager.dataForCurrentUser().phoneNumber)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Spacer()
                     }
                 }
                 .padding(.vertical, 4)
@@ -91,9 +87,6 @@ struct ProfileContentView: View {
                                 Text(selectedAddress.label)
                                     .font(.subheadline.bold())
                                 Spacer()
-                                Text("See All")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
                             }
                             Text(selectedAddress.street)
                                 .font(.caption)
@@ -108,9 +101,6 @@ struct ProfileContentView: View {
                         HStack {
                             Text("No Address Selected")
                             Spacer()
-                            Text("See All")
-                                .font(.caption)
-                                .foregroundColor(.blue)
                         }
                     }
                 }
@@ -120,8 +110,8 @@ struct ProfileContentView: View {
             Section(header: Text("My Orders")) {
                 NavigationLink(destination: ProfileTrackShipmentsListView()) {
                     HStack {
-                        Image(systemName: "box.truck")
-                            .foregroundColor(.indigo)
+                        Image(systemName: "box.truck.fill")
+                            .foregroundColor(.black)
                             .frame(width: 24)
                         Text("Track Active Orders")
                         Spacer()
@@ -138,8 +128,8 @@ struct ProfileContentView: View {
                 
                 NavigationLink(destination: ProfilePastOrdersView().environmentObject(mockUserManager)) {
                     HStack {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .foregroundColor(.gray)
+                        Image(systemName: "clock.fill")
+                            .foregroundColor(.black)
                             .frame(width: 24)
                         Text("Past Orders")
                         Spacer()
@@ -155,8 +145,8 @@ struct ProfileContentView: View {
             Section(header: Text("Gift Registries")) {
                 NavigationLink(destination: ProfileRegistryListView()) {
                     HStack {
-                        Image(systemName: "gift")
-                            .foregroundColor(.green)
+                        Image(systemName: "gift.fill")
+                            .foregroundColor(.black)
                             .frame(width: 24)
                         Text("My Registries")
                         Spacer()
@@ -170,8 +160,8 @@ struct ProfileContentView: View {
             // ACCOUNT SETTINGS
             Section(header: Text("Account Settings")) {
                 HStack {
-                    Image(systemName: "creditcard")
-                        .foregroundColor(.purple)
+                    Image(systemName: "creditcard.fill")
+                        .foregroundColor(.black)
                         .frame(width: 24)
                     Text("Payment Methods")
                     Spacer()
@@ -181,8 +171,8 @@ struct ProfileContentView: View {
                 }
                 
                 HStack {
-                    Image(systemName: "bell")
-                        .foregroundColor(.blue)
+                    Image(systemName: "bell.fill")
+                        .foregroundColor(.black)
                         .frame(width: 24)
                     Text("Notifications")
                     Spacer()
