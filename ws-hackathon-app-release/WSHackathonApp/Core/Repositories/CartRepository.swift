@@ -11,7 +11,7 @@ import Combine
 @MainActor
 final class CartRepository: ObservableObject {
     
-    @Published private(set) var items: [CartItem] = []
+    @Published var items: [CartItem] = []
     @Published private(set) var savedItems: [CartItem] = []
     
     private let cartKey = "ws_cart_items"

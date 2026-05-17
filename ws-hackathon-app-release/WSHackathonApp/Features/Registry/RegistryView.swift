@@ -24,7 +24,16 @@ struct RegistryView: View {
     @State private var selectedInstruction: RegistryInstruction?
     
     @EnvironmentObject var collabManager: CollaborationManager
+    @EnvironmentObject var mockUserManager: MockUserManager
     @State private var showingJoinSheet = false
+    
+    private var joinedRegistries: [Registry] {
+        collabManager.joinedRegistries(for: mockUserManager.currentUser.name, in: registryRepo)
+    }
+    
+    private var hasAnyRegistries: Bool {
+        !registryRepo.registries.isEmpty || !joinedRegistries.isEmpty
+    }
     
     var body: some View {
         NavigationStack(path: $tabBarVM.registryPath) {
@@ -33,7 +42,7 @@ struct RegistryView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        if viewModel.hasRegistries {
+                        if hasAnyRegistries {
                             registryList
                         } else {
                             emptyStateView
@@ -110,6 +119,7 @@ struct RegistryView: View {
                 JoinRegistryView()
                     .environmentObject(registryRepo)
                     .environmentObject(collabManager)
+                    .environmentObject(mockUserManager)
             }
         }
         .onAppear {
@@ -122,90 +132,203 @@ struct RegistryView: View {
 private extension RegistryView {
     
     var registryList: some View {
-        VStack(spacing: 16) {
-            ForEach(viewModel.allRegistries) { registry in
-                Button(action: {
-                    tabBarVM.registryPath.append(.detail(registry.id))
-                }) {
-                    VStack(spacing: 12) {
-                        HStack(spacing: 16) {
-                            // Circular Image
-                            Group {
-                                if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
-                                    Image(uiImage: uiImage)
-                                        .resizable()
-                                        .scaledToFill()
-                                } else {
-                                    ZStack {
-                                        Color(.systemGray6)
-                                        Image(systemName: "camera.fill")
+        VStack(spacing: 24) {
+            if !registryRepo.registries.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("MY REGISTRIES")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 16)
+                    
+                    ForEach(registryRepo.registries) { registry in
+                        Button(action: {
+                            tabBarVM.registryPath.append(.detail(registry.id))
+                        }) {
+                            VStack(spacing: 12) {
+                                HStack(spacing: 16) {
+                                    // Circular Image
+                                    Group {
+                                        if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                        } else {
+                                            ZStack {
+                                                Color(.systemGray6)
+                                                Image(systemName: "camera.fill")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                        }
+                                    }
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(registry.displayName)
+                                            .font(.headline)
+                                            .foregroundColor(.black)
+                                            .lineLimit(1)
+                                        
+                                        Text(registry.date.formatted(date: .abbreviated, time: .omitted))
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray)
+                                        
+                                        Text(registry.event.title)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        Text("\(registry.items.count) items")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 14, weight: .semibold))
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
                                 }
-                            }
-                            .frame(width: 60, height: 60)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(registry.displayName)
-                                    .font(.headline)
-                                    .foregroundColor(.black)
-                                    .lineLimit(1)
                                 
-                                Text(registry.date.formatted(date: .abbreviated, time: .omitted))
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
+                                // Progress bar for purchased items
+                                let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
+                                let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
+                                let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
                                 
-                                Text(registry.event.title)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .trailing, spacing: 4) {
-                                Text("\(registry.items.count) items")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.gray.opacity(0.5))
-                            }
-                        }
-                        
-                        // Progress bar for purchased items
-                        let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
-                        // For demo, if there are items but none purchased, randomly mock 1 or 2 as purchased
-                        let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
-                        let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
-                        
-                        VStack(spacing: 4) {
-                            HStack {
-                                Text("\(purchasedItems) of \(totalItems) items funded")
-                                    .font(.caption2)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                            }
-                            GeometryReader { geo in
-                                ZStack(alignment: .leading) {
-                                    Capsule().fill(Color(.systemGray6)).frame(height: 6)
-                                    let progress = totalItems > 0 ? min(CGFloat(purchasedItems) / CGFloat(totalItems), 1.0) : 0
-                                    Capsule().fill(Color.black).frame(width: geo.size.width * progress, height: 6)
+                                VStack(spacing: 4) {
+                                    HStack {
+                                        Text("\(purchasedItems) of \(totalItems) items funded")
+                                            .font(.caption2)
+                                            .foregroundColor(.gray)
+                                        Spacer()
+                                    }
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color(.systemGray6)).frame(height: 6)
+                                            let progress = totalItems > 0 ? min(CGFloat(purchasedItems) / CGFloat(totalItems), 1.0) : 0
+                                            Capsule().fill(Color.black).frame(width: geo.size.width * progress, height: 6)
+                                        }
+                                    }
+                                    .frame(height: 6)
                                 }
+                                .padding(.top, 4)
                             }
-                            .frame(height: 6)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(16)
+                            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
+                            .padding(.horizontal, 16)
                         }
-                        .padding(.top, 4)
+                        .buttonStyle(.plain)
                     }
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
-                    .padding(.horizontal, 16)
                 }
-                .buttonStyle(.plain)
+            }
+            
+            if !joinedRegistries.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("JOINED REGISTRIES")
+                        .font(.caption.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 16)
+                    
+                    ForEach(joinedRegistries) { registry in
+                        Button(action: {
+                            tabBarVM.registryPath.append(.detail(registry.id))
+                        }) {
+                            VStack(spacing: 12) {
+                                HStack(spacing: 16) {
+                                    // Circular Image
+                                    Group {
+                                        if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
+                                            Image(uiImage: uiImage)
+                                                .resizable()
+                                                .scaledToFill()
+                                        } else {
+                                            ZStack {
+                                                Color(.systemGray6)
+                                                Image(systemName: "camera.fill")
+                                                    .foregroundColor(.gray.opacity(0.5))
+                                            }
+                                        }
+                                    }
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(Circle())
+                                    .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(registry.displayName)
+                                            .font(.headline)
+                                            .foregroundColor(.black)
+                                            .lineLimit(1)
+                                        
+                                        Text("Shared with you")
+                                            .font(.subheadline)
+                                            .foregroundColor(.blue)
+                                        
+                                        Text(registry.event.title)
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    VStack(alignment: .trailing, spacing: 4) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "person.2.fill")
+                                                .font(.caption)
+                                                .foregroundColor(.blue.opacity(0.8))
+                                            Text("\(registry.items.count) items")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.gray.opacity(0.5))
+                                    }
+                                }
+                                
+                                // Progress bar for purchased items
+                                let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
+                                let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
+                                let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
+                                
+                                VStack(spacing: 4) {
+                                    HStack {
+                                        Text("\(purchasedItems) of \(totalItems) items funded")
+                                            .font(.caption2)
+                                            .foregroundColor(.gray)
+                                        Spacer()
+                                    }
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color(.systemGray6)).frame(height: 6)
+                                            let progress = totalItems > 0 ? min(CGFloat(purchasedItems) / CGFloat(totalItems), 1.0) : 0
+                                            Capsule().fill(Color.black).frame(width: geo.size.width * progress, height: 6)
+                                        }
+                                    }
+                                    .frame(height: 6)
+                                }
+                                .padding(.top, 4)
+                            }
+                            .padding()
+                            .background(
+                                HStack(spacing: 0) {
+                                    Rectangle()
+                                        .fill(Color.blue.opacity(0.6))
+                                        .frame(width: 6)
+                                    Color.white
+                                }
+                            )
+                            .cornerRadius(16)
+                            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
+                            .padding(.horizontal, 16)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
         }
     }

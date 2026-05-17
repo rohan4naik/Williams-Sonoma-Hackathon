@@ -61,27 +61,37 @@ struct RegistryItemRow: View {
                 
                 HStack(alignment: .center) {
                     // Quantity selector
-                    HStack(spacing: 16) {
-                        Button(action: viewModel.decreaseQty) {
-                            Image(systemName: "minus")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.black)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 16) {
+                            Button(action: viewModel.decreaseQty) {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
+                            
+                            Text(viewModel.quantityText)
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(minWidth: 16)
+                            
+                            Button(action: viewModel.increaseQty) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.black)
+                            }
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(20)
                         
-                        Text(viewModel.quantityText)
-                            .font(.system(size: 14, weight: .semibold))
-                            .frame(minWidth: 16)
-                        
-                        Button(action: viewModel.increaseQty) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.black)
+                        if viewModel.isCollaborator && !viewModel.canActDirectly {
+                            Text("Changes require owner approval")
+                                .font(.system(size: 10))
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 12)
+                                .padding(.bottom, 4)
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(20)
                     
                     Spacer()
                     
@@ -96,14 +106,16 @@ struct RegistryItemRow: View {
                                 .font(.system(size: 22))
                                 .foregroundColor(.black)
                         }
-                        .padding(.trailing, 8)
+                        .padding(.trailing, viewModel.canActDirectly ? 8 : 16)
                         
-                        Button(action: viewModel.removeItem) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 22))
-                                .foregroundColor(.red)
+                        if viewModel.canActDirectly {
+                            Button(action: viewModel.removeItem) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.red)
+                            }
+                            .padding(.trailing, 16)
                         }
-                        .padding(.trailing, 16)
                     }
                 }
                 .padding(.bottom, 12)
