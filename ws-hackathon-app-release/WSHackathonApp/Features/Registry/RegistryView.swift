@@ -222,7 +222,7 @@ private extension RegistryView {
                             .padding()
                             .background(Color.white)
                             .cornerRadius(16)
-                            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
+                            .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
                             .padding(.horizontal, 16)
                         }
                         .buttonStyle(.plain)
@@ -331,7 +331,7 @@ private extension RegistryView {
                                 }
                             )
                             .cornerRadius(16)
-                            .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 5)
+                            .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
                             .padding(.horizontal, 16)
                         }
                         .buttonStyle(.plain)
@@ -397,6 +397,7 @@ private extension RegistryView {
             }
         )
         .cornerRadius(16)
+        .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
         .padding(.horizontal, 16)
     }
     
@@ -416,27 +417,58 @@ private extension RegistryView {
         }
     }
     
+    func cardColors(for iconName: String) -> (Color, Color) {
+        switch iconName {
+        case "star": // Exclusive Products - Soft Gold
+            return (
+                Color(red: 254/255, green: 249/255, blue: 195/255), // light yellow/gold
+                Color(red: 161/255, green: 98/255, blue: 7/255)     // rich gold/amber
+            )
+        case "bubble.left": // Free Expert Advice - Soft Azure Blue
+            return (
+                Color(red: 224/255, green: 242/255, blue: 254/255), // light cyan/blue
+                Color(red: 3/255, green: 105/255, blue: 161/255)    // professional blue
+            )
+        case "dollarsign.circle": // 10% Off - Soft Mint Green
+            return (
+                Color(red: 220/255, green: 252/255, blue: 231/255), // light green/mint
+                Color(red: 21/255, green: 128/255, blue: 61/255)    // rich forest green
+            )
+        case "house": // 150+ Stores - Soft Coral Rose
+            return (
+                Color(red: 254/255, green: 226/255, blue: 226/255), // light rose/coral
+                Color(red: 185/255, green: 28/255, blue: 28/255)    // warm red
+            )
+        default:
+            return (Color(.systemGray6), Color.black)
+        }
+    }
+
     func reasonCard(for instruction: RegistryInstruction) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let colors = cardColors(for: instruction.iconName)
+        
+        return VStack(alignment: .leading, spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Color.white)
                     .frame(width: 48, height: 48)
                 Image(systemName: instruction.iconName)
                     .font(.system(size: 20))
-                    .foregroundColor(.black)
+                    .foregroundColor(colors.1)
             }
             
             Text(instruction.title)
                 .font(.subheadline)
                 .fontWeight(.bold)
+                .foregroundColor(.black.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
                 .lineLimit(2)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(Color(.systemGray6))
+        .background(colors.0)
         .cornerRadius(16)
+        .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
         .onTapGesture {
             selectedInstruction = instruction
         }
@@ -460,6 +492,7 @@ private extension RegistryView {
             .padding(.vertical, 8)
             .background(Color(.systemGray6))
             .cornerRadius(16)
+            .shadow(color: .black.opacity(0.15), radius: 2, x: 0, y: 1)
             .padding(.horizontal, 16)
         }
     }

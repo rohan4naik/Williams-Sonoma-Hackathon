@@ -18,9 +18,6 @@ struct WSHackathonAppApp: App {
      
     init() {
         CollaborationManager.shared.requestNotificationPermission()
-    }
-    
-    init() {
         NotificationManager.shared.requestPermission()
     }
     
