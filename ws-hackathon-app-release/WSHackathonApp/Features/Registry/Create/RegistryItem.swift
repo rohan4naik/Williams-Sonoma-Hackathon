@@ -31,4 +31,9 @@ struct RegistryItem: Identifiable, Hashable, Codable {
         self.categoryId = categoryId
         self.customCategoryName = customCategoryName
     }
+    
+    var imageURL: URL? {
+        guard let url = imageUrl else { return nil }
+        return URL(string: AppConstants.API.imageBasePath + url)
+    }
 }

@@ -13,70 +13,63 @@ struct SavedItemCard: View {
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // TOP: Product Image (Flush)
             ZStack(alignment: .topTrailing) {
                 CustomAsyncImage(url: item.imageURL)
                     .frame(height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .aspectRatio(contentMode: .fill)
+                    .clipped()
                 
+                // TOP RIGHT: Subtle Remove Icon
                 Button(action: {
                     haptic.impactOccurred()
                     onRemove()
                 }) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(8)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.black.opacity(0.7))
+                        .padding(7)
                         .background(Color.white.opacity(0.9))
                         .clipShape(Circle())
                         .padding(10)
                 }
             }
             
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.brand?.uppercased() ?? "WILLIAMS SONOMA")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .tracking(0.5)
-                
+            VStack(alignment: .leading, spacing: 8) {
+                // MIDDLE: Product Title
                 Text(item.title)
-                    .font(.system(size: 13, weight: .bold))
-                    .lineLimit(1)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(height: 34, alignment: .top)
                 
-                HStack {
-                    Text("$\(item.price, specifier: "%.2f")")
-                        .font(.system(size: 14, weight: .black, design: .monospaced))
-                    
-                    Spacer()
-                    
-                    if item.availability == "ON_HAND" {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 6, height: 6)
-                    }
+                // Price
+                Text("$\(item.price, specifier: "%.2f")")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Spacer().frame(height: 4)
+                
+                // BOTTOM: Elegant Move to Cart Button
+                Button(action: {
+                    haptic.impactOccurred()
+                    onMoveToCart()
+                }) {
+                    Text("Move to Cart")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 9)
+                        .background(Color(.systemGray5))
+                        .clipShape(Capsule())
                 }
             }
-            .padding(.horizontal, 4)
-            
-            Button(action: {
-                haptic.impactOccurred()
-                onMoveToCart()
-            }) {
-                HStack(spacing: 6) {
-                    Image(systemName: "cart.badge.plus")
-                    Text("MOVE TO CART")
-                }
-                .font(.system(size: 10, weight: .black))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.black)
-                .foregroundColor(.white)
-                .clipShape(Capsule())
-            }
+            .padding(12)
         }
-        .padding(10)
         .background(Color.white)
-        .cornerRadius(28)
-        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 5)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 6)
     }
 }

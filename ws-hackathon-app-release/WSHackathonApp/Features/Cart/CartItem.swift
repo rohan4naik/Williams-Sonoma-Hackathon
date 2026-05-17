@@ -16,6 +16,7 @@ struct CartItem: Identifiable, Codable, Equatable {
     let availability: String?
     let canGiftWrap: Bool
     var quantity: Int
+    var isSaved: Bool = false
     
     var imageURL: URL? {
         if let imageUrl = path {

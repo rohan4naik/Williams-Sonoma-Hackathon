@@ -15,6 +15,8 @@ struct HomeView: View {
     @EnvironmentObject var registryRepository: RegistryRepository
     @EnvironmentObject var tabBarVM: WSTabBarViewModel
     
+    @State private var showProfile = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -131,6 +133,26 @@ struct HomeView: View {
             .navigationTitle(AppStrings.Home.title)
             .navigationBarTitleDisplayMode(.large)
             .searchable(text: $viewModel.searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: AppStrings.Home.searchPlaceHolder)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showProfile = true }) {
+                        ZStack {
+                            Circle()
+                                .fill(Color(.systemGray5))
+                                .frame(width: 34, height: 34)
+                            Text("KK")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showProfile) {
+                ProfileSheetView(isPresented: $showProfile)
+                    .environmentObject(cartRepository)
+                    .environmentObject(registryRepository)
+                    .environmentObject(tabBarVM)
+            }
             .onAppear {
                 Task {
                     viewModel.bind(
@@ -197,14 +219,16 @@ struct MostLovedCard: View {
                     image
                         .resizable()
                         .scaledToFill()
+                        .frame(width: 90, height: 90)
+                        .clipped()
                 } else if phase.error != nil {
                     Color.gray.opacity(0.2)
+                        .frame(width: 90, height: 90)
                 } else {
                     ProgressView()
+                        .frame(width: 90, height: 90)
                 }
             }
-            .frame(width: 90, height: 90)
-            .clipped()
             .padding(.trailing, 24)
         }
         .frame(width: 300, height: 140)

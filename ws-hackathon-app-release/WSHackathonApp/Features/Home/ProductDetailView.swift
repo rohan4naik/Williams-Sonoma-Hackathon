@@ -26,27 +26,30 @@ struct ProductDetailView: View {
             VStack(alignment: .leading, spacing: 0) {
                 // MARK: - Product Image
                 ZStack(alignment: .bottomTrailing) {
-                    AsyncImage(url: product.imageURL) { phase in
-                        if let image = phase.image {
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } else if phase.error != nil {
-                            ZStack {
-                                Color(.systemGray6)
-                                Image(systemName: "photo")
-                                    .foregroundColor(.gray.opacity(0.4))
-                                    .font(.system(size: 40))
-                            }
-                        } else {
-                            ZStack {
-                                Color(.systemGray6)
-                                ProgressView()
+                    GeometryReader { geo in
+                        AsyncImage(url: product.imageURL) { phase in
+                            if let image = phase.image {
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: geo.size.width, height: geo.size.width)
+                                    .clipped()
+                            } else if phase.error != nil {
+                                ZStack {
+                                    Color(.systemGray6)
+                                    Image(systemName: "photo")
+                                        .foregroundColor(.gray.opacity(0.4))
+                                        .font(.system(size: 40))
+                                }
+                            } else {
+                                ZStack {
+                                    Color(.systemGray6)
+                                    ProgressView()
+                                }
                             }
                         }
                     }
-                    .aspectRatio(1, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
+                    .aspectRatio(1, contentMode: .fit)
                     .clipShape(RoundedCorner(radius: 50, corners: [.bottomLeft, .bottomRight]))
                     
                     // Floating Price Tag
@@ -246,49 +249,57 @@ struct ProductDetailView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
                                     ForEach(relatedProducts) { relatedProduct in
-                                        VStack(alignment: .leading, spacing: 8) {
-                                            NavigationLink(destination: ProductDetailView(product: relatedProduct, relatedProducts: relatedProducts.shuffled())) {
-                                                VStack(alignment: .leading, spacing: 8) {
-                                                    AsyncImage(url: relatedProduct.imageURL) { phase in
-                                                        if let image = phase.image {
-                                                            image
-                                                                .resizable()
-                                                                .scaledToFill()
-                                                        } else {
-                                                            Color(.systemGray6)
+                                        NavigationLink(destination: ProductDetailView(product: relatedProduct, relatedProducts: relatedProducts.shuffled())) {
+                                            VStack(alignment: .leading, spacing: 0) {
+                                                // TOP: Large product image (Hero)
+                                                CustomAsyncImage(url: relatedProduct.imageURL)
+                                                    .frame(width: 156, height: 156)
+                                                    .aspectRatio(contentMode: .fill)
+                                                    .clipped()
+                                                
+                                                VStack(alignment: .leading, spacing: 10) {
+                                                    // MIDDLE: Product title (2 lines max)
+                                                    Text(relatedProduct.title)
+                                                        .font(.system(size: 13, weight: .medium))
+                                                        .foregroundColor(.primary.opacity(0.9))
+                                                        .lineLimit(2)
+                                                        .multilineTextAlignment(.leading)
+                                                        .frame(height: 34, alignment: .topLeading)
+                                                    
+                                                    // BOTTOM: Price and Small elegant add button
+                                                    HStack(alignment: .bottom) {
+                                                        Text(relatedProduct.price?.formatted(.currency(code: "USD")) ?? "")
+                                                            .font(.system(size: 14, weight: .semibold))
+                                                            .foregroundColor(.primary)
+                                                        
+                                                        Spacer()
+                                                        
+                                                        Button(action: {
+                                                            cartRepository.add(product: relatedProduct)
+                                                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                                                            generator.impactOccurred()
+                                                        }) {
+                                                            Image(systemName: "plus")
+                                                                .font(.system(size: 10, weight: .bold))
+                                                                .foregroundColor(.primary)
+                                                                .frame(width: 22, height: 22)
+                                                                .background(Color(.systemGray5))
+                                                                .clipShape(Circle())
                                                         }
                                                     }
-                                                    .frame(width: 140, height: 140)
-                                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                                    
-                                                    Text(relatedProduct.title)
-                                                        .font(.system(size: 14, weight: .medium))
-                                                        .foregroundColor(.primary)
-                                                        .lineLimit(2)
-                                                        .frame(height: 36, alignment: .topLeading)
                                                 }
+                                                .padding(12)
                                             }
-                                            .buttonStyle(PlainButtonStyle())
-                                            
-                                            HStack {
-                                                Text(relatedProduct.price?.formatted(.currency(code: "USD")) ?? "")
-                                                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                                                    .foregroundColor(.secondary)
-                                                
-                                                Spacer()
-                                                
-                                                Button(action: {
-                                                    cartRepository.add(product: relatedProduct)
-                                                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                                                    generator.impactOccurred()
-                                                }) {
-                                                    Image(systemName: "plus")
-                                                        .font(.system(size: 18, weight: .medium))
-                                                        .foregroundColor(.primary)
-                                                }
-                                            }
+                                            .background(Color.white)
+                                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                                    .stroke(Color(.systemGray5), lineWidth: 1)
+                                            )
+                                            .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 5)
+                                            .frame(width: 156)
                                         }
-                                        .frame(width: 140)
+                                        .buttonStyle(PlainButtonStyle())
                                     }
                                 }
                             }

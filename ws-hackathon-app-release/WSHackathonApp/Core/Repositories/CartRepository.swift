@@ -63,10 +63,18 @@ final class CartRepository: ObservableObject {
     // MARK: - Save for Later
     func saveForLater(productId: String) {
         guard let index = items.firstIndex(where: { $0.id == productId }) else { return }
-        let item = items.remove(at: index)
+        
+        var item = items[index]
+        item.isSaved = true
+        
+        // Add to savedItems if not already there
         if !savedItems.contains(where: { $0.id == item.id }) {
             savedItems.append(item)
         }
+        
+        // Remove from active cart
+        items.remove(at: index)
+        
         saveCart()
     }
     
@@ -81,7 +89,8 @@ final class CartRepository: ObservableObject {
                 collection: product.collection,
                 availability: product.availability,
                 canGiftWrap: product.canGiftWrap,
-                quantity: 1
+                quantity: 1,
+                isSaved: true
             )
             savedItems.append(newItem)
             saveCart()
@@ -94,9 +103,11 @@ final class CartRepository: ObservableObject {
     
     func moveToCart(productId: String) {
         guard let index = savedItems.firstIndex(where: { $0.id == productId }) else { return }
-        let item = savedItems.remove(at: index)
+        var item = savedItems.remove(at: index)
+        item.isSaved = false
         if let cartIndex = items.firstIndex(where: { $0.id == item.id }) {
             items[cartIndex].quantity += 1
+            items[cartIndex].isSaved = false
         } else {
             items.append(item)
         }

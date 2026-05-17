@@ -85,13 +85,36 @@ struct CartView: View {
                                 .background(Color(.systemBackground))
                                 .cornerRadius(24)
                                 .padding(.horizontal)
+
+                                // MARK: - Complete the Collection Bundle
+                                if !viewModel.completeCollectionRecommendations.isEmpty {
+                                    VStack(alignment: .leading, spacing: 16) {
+                                        Text("Frequently Bought Together")
+                                            .font(.system(size: 20, weight: .bold, design: .default))
+                                            .padding(.horizontal)
+
+                                        CompleteTheCollectionCard(
+                                            products: viewModel.completeCollectionRecommendations,
+                                            onAddToCart: { selection in
+                                                for (product, qty) in selection {
+                                                    for _ in 0..<qty {
+                                                        viewModel.addToCart(product: product)
+                                                    }
+                                                }
+                                            }
+                                        )
+                                        // Force full re-creation when recommendation list changes
+                                        .id(viewModel.completeCollectionRecommendations.map { $0.id }.joined(separator: "-"))
+                                        .padding(.horizontal)
+                                    }
+                                }
                             }
                             
-                            // MARK: - Recommendations
-                            if !viewModel.recommendations.isEmpty {
+                            // MARK: - Frequently Bought Together
+                            if !viewModel.frequentlyBoughtTogetherRecommendations.isEmpty {
                                 RecommendationCarousel(
-                                    title: viewModel.items.isEmpty ? "Suggested for You" : "Complete the Collection",
-                                    products: viewModel.recommendations,
+                                    title: "Suggested for You",
+                                    products: viewModel.frequentlyBoughtTogetherRecommendations,
                                     onAdd: { product in
                                         viewModel.addToCart(product: product)
                                     }
@@ -117,13 +140,7 @@ struct CartView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {
                                         Text("Save for Later (\(viewModel.savedItems.count))")
-                                            .font(.headline)
-                                        
-                                        Spacer()
-                                        
-                                        Text("Moving items?")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .font(.system(size: 20, weight: .bold, design: .default))
                                     }
                                     .padding(.horizontal)
                                     
