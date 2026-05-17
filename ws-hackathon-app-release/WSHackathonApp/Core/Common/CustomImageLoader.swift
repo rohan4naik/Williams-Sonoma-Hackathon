@@ -10,16 +10,23 @@ import Combine
 
 final class CustomImageLoader: ObservableObject {
     @Published var image: UIImage?
-    
-    private var hasLoaded = false
+    private var currentURL: URL?
     
     func load(url: URL?) {
-        guard !hasLoaded, let url else { return }
-        hasLoaded = true
+        guard let url else { return }
+        guard currentURL != url else { return }
+        currentURL = url
         
         Task {
             do {
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let data: Data
+                if url.isFileURL {
+                    data = try Data(contentsOf: url)
+                } else {
+                    let (fetchedData, _) = try await URLSession.shared.data(from: url)
+                    data = fetchedData
+                }
+                
                 if let img = UIImage(data: data) {
                     await MainActor.run {
                         self.image = img

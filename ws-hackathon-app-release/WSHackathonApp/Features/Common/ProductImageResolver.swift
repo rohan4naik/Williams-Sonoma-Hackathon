@@ -37,7 +37,7 @@ struct ProductImageResolver {
         }
         
         // Normal image path resolution
-        if url.hasPrefix("http://") || url.hasPrefix("https://") {
+        if url.hasPrefix("http://") || url.hasPrefix("https://") || url.hasPrefix("file://") {
             return URL(string: url)
         }
         return URL(string: AppConstants.API.imageBasePath + url)

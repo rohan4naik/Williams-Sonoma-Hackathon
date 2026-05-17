@@ -108,10 +108,68 @@ class CheckoutViewModel: ObservableObject {
     func placeOrder() {
         isProcessing = true
         
+        let orderItems = items.map { cartItem in
+            let product = ProductItem(
+                id: cartItem.id,
+                title: cartItem.title,
+                price: cartItem.price,
+                path: cartItem.path,
+                brand: cartItem.brand,
+                productType: nil,
+                collection: cartItem.collection,
+                availability: cartItem.availability,
+                canGiftWrap: cartItem.canGiftWrap
+            )
+            return SimulatedOrderItem(product: product, quantity: cartItem.quantity)
+        }
+        
+        let orderIdInt = Int.random(in: 10000...99999)
+        
+        let deliveryDays: String
+        switch selectedDeliveryMethod {
+        case .standard: deliveryDays = "In 3-5 business days"
+        case .express: deliveryDays = "In 1-2 business days"
+        case .overnight: deliveryDays = "Tomorrow by 3:00 PM"
+        }
+        
+        let newShipment = SimulatedShipment(
+            id: "\(orderIdInt)",
+            estimatedDelivery: deliveryDays,
+            carrier: "FedEx",
+            trackingNumber: "#78394829" + String(Int.random(in: 1000...9999)),
+            statusText: "Processing",
+            statusColor: .indigo,
+            items: orderItems,
+            steps: [
+                StatusStep(
+                    title: "Order Placed & Confirmed",
+                    time: "Today, \(Date().formatted(date: .omitted, time: .shortened))",
+                    description: "Payment verified and order processed successfully.",
+                    isCompleted: true,
+                    isActive: true
+                )
+            ]
+        )
+        
+        let pastOrder = SimulatedOrder(
+            id: "WS-\(orderIdInt)",
+            date: Date().formatted(date: .abbreviated, time: .omitted),
+            status: "Processing",
+            items: orderItems,
+            total: total
+        )
+        
         // Simulate network delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.isProcessing = false
             self.orderPlaced = true
+            
+            // Add to active shipments and past orders in the MockUserManager
+            MockUserManager.shared.addActiveShipment(newShipment)
+            if MockUserManager.shared.userDataStore[MockUserManager.shared.currentUser.id] == nil {
+                MockUserManager.shared.userDataStore[MockUserManager.shared.currentUser.id] = MockUserData()
+            }
+            MockUserManager.shared.userDataStore[MockUserManager.shared.currentUser.id]?.pastOrders.insert(pastOrder, at: 0)
             
             self.cartRepository?.clearCart()
         }

@@ -115,7 +115,7 @@ struct ProfileContentView: View {
                             .frame(width: 24)
                         Text("Track Active Orders")
                         Spacer()
-                        let activeCount = ProductRepository.shared.products.count >= 6 ? 2 : 1
+                        let activeCount = mockUserManager.dataForCurrentUser().activeShipments.count
                         Text("\(activeCount) active")
                             .font(.caption.bold())
                             .foregroundColor(.indigo)
@@ -283,68 +283,12 @@ struct ProfileEditView: View {
     }
 }
 
-// MARK: - Shipment Models
-struct SimulatedShipment: Identifiable {
-    let id: String
-    let estimatedDelivery: String
-    let carrier: String
-    let trackingNumber: String
-    let statusText: String
-    let statusColor: Color
-    let items: [SimulatedOrderItem]
-    let steps: [StatusStep]
-}
-
-struct StatusStep: Identifiable {
-    let id = UUID()
-    let title: String
-    let time: String
-    let description: String
-    let isCompleted: Bool
-    let isActive: Bool
-}
-
 // MARK: - Track Shipments List View
 struct ProfileTrackShipmentsListView: View {
+    @EnvironmentObject var mockUserManager: MockUserManager
+    
     private var activeShipments: [SimulatedShipment] {
-        let allProducts = ProductRepository.shared.products
-        guard allProducts.count >= 2 else { return [] }
-        
-        let firstProduct = allProducts[0]
-        let secondProduct = allProducts.count >= 6 ? allProducts[5] : allProducts[1]
-        
-        return [
-            SimulatedShipment(
-                id: "WS-10492",
-                estimatedDelivery: "Tomorrow by 5:00 PM",
-                carrier: "FedEx",
-                trackingNumber: "#783948293849",
-                statusText: "Out for Delivery",
-                statusColor: .indigo,
-                items: [SimulatedOrderItem(product: firstProduct, quantity: 1)],
-                steps: [
-                    StatusStep(title: "Out for Delivery", time: "Today, 8:15 AM", description: "Your package is with the courier for local delivery.", isCompleted: true, isActive: true),
-                    StatusStep(title: "Arrived at Local Facility", time: "Yesterday, 11:30 PM", description: "Package arrived at local distribution hub.", isCompleted: true, isActive: false),
-                    StatusStep(title: "In Transit", time: "May 15, 4:00 PM", description: "Package is on its way from primary fulfillment center.", isCompleted: true, isActive: false),
-                    StatusStep(title: "Order Placed & Confirmed", time: "May 14, 10:00 AM", description: "Payment verified and order sent to warehouse.", isCompleted: true, isActive: false)
-                ]
-            ),
-            SimulatedShipment(
-                id: "WS-10521",
-                estimatedDelivery: "Thursday, May 21",
-                carrier: "UPS",
-                trackingNumber: "#1Z99A9999999999999",
-                statusText: "In Transit",
-                statusColor: .orange,
-                items: [SimulatedOrderItem(product: secondProduct, quantity: 1)],
-                steps: [
-                    StatusStep(title: "Out for Delivery", time: "Estimated May 21", description: "Package will be assigned to a local courier on delivery day.", isCompleted: false, isActive: false),
-                    StatusStep(title: "Arrived at Local Facility", time: "Pending", description: "Package will scan at local center upon arrival.", isCompleted: false, isActive: false),
-                    StatusStep(title: "In Transit", time: "Today, 4:30 AM", description: "Package departed hub and is in transit to destination facility.", isCompleted: true, isActive: true),
-                    StatusStep(title: "Order Placed & Confirmed", time: "May 16, 2:00 PM", description: "Payment verified and order processed successfully.", isCompleted: true, isActive: false)
-                ]
-            )
-        ]
+        mockUserManager.dataForCurrentUser().activeShipments
     }
     
     var body: some View {
