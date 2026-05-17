@@ -40,7 +40,7 @@ struct RegistryView: View {
                 }
             }
             .navigationTitle(AppStrings.Registry.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
@@ -177,9 +177,6 @@ private extension RegistryView {
     var headerSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(AppStrings.Registry.title)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
                 Text(AppStrings.Registry.subtitle)
                     .font(.body)
                     .foregroundColor(.gray)
