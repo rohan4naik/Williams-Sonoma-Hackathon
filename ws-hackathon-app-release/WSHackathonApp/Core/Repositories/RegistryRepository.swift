@@ -97,6 +97,10 @@ final class RegistryRepository: ObservableObject {
         registries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.quantity ?? 0
     }
     
+    func purchasedQuantity(for registryItem: RegistryItem, in registryId: UUID) -> Int {
+        registries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.purchasedQuantity ?? 0
+    }
+    
     // MARK: - Categorization
     
     // Toggle categorization mode on/off for a registry

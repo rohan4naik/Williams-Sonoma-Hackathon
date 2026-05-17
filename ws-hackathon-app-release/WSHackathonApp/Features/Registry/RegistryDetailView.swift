@@ -79,48 +79,7 @@ struct RegistryDetailView: View {
                         if searchText.isEmpty {
                             // MARK: - Registry Details
                             
-                            // Header Card
-                            HStack(spacing: 16) {
-                                // Circular Image
-                                Group {
-                                    if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        ZStack {
-                                            Color(.systemGray6)
-                                            Image(systemName: "camera.fill")
-                                                .foregroundColor(.gray.opacity(0.5))
-                                        }
-                                    }
-                                }
-                                .frame(width: 80, height: 80)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(registry.displayName)
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                    
-                                    Text(registry.date.formatted(date: .abbreviated, time: .omitted))
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Text(registry.event.title)
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(4)
-                                }
-                                Spacer()
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .padding(.horizontal, 16)
+                            headerCard(registry: registry)
                             
                             // Items List
                             VStack(alignment: .leading, spacing: 16) {
@@ -351,8 +310,35 @@ struct RegistryDetailView: View {
                                         }
                                         .padding(.horizontal, 16)
                                     }
+                                    
+                                    // Add All to Cart Button
+                                    Button(action: {
+                                        for item in registry.items {
+                                            let product = ProductItem(
+                                                id: item.id,
+                                                title: item.title,
+                                                price: item.price,
+                                                path: item.imageUrl
+                                            )
+                                            cartRepo.add(product: product, quantity: item.quantity)
+                                        }
+
+                                    }) {
+                                        Text("Add All to Cart")
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.black)
+                                            .cornerRadius(12)
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 8)
                                 }
                             }
+                            
+                            // MARK: - AI Suggestions
+                            aiSuggestionsSection
                             
                             // Actions
                             Button(role: .destructive) {
@@ -371,9 +357,7 @@ struct RegistryDetailView: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 24)
-                            
-                            // MARK: - AI Suggestions
-                            aiSuggestionsSection
+                            .padding(.bottom, 24)
                             
                         } else {
                             // MARK: - Search Results
@@ -425,7 +409,7 @@ struct RegistryDetailView: View {
                 ContentUnavailableView("Registry not found", systemImage: "tray")
             }
         }
-        .onChange(of: registryRepo.registries) { _ in
+        .onChange(of: registryRepo.registries) { _, _ in
             if registryRepo.registries.first(where: { $0.id == registryId }) == nil {
                 dismiss()
             }
@@ -476,6 +460,93 @@ struct RegistryDetailView: View {
                 .padding(.bottom, 8)
             }
         }
+    }
+    
+    private func headerCard(registry: Registry) -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 16) {
+                // Circular Image
+                Group {
+                    if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        ZStack {
+                            Color(.systemGray6)
+                            Image(systemName: "camera.fill")
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                    }
+                }
+                .frame(width: 80, height: 80)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(registry.displayName)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    
+                    Text(registry.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    Text(registry.event.title)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(4)
+                }
+                Spacer()
+            }
+            
+            Divider()
+            
+
+            
+            // MARK: - Budget Section
+            if let budget = registry.targetBudget {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Registry Total")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text("\(registry.totalValue.formatted(.currency(code: "USD"))) / \(budget.formatted(.currency(code: "USD")))")
+                            .font(.subheadline)
+                            .fontWeight(registry.totalValue > budget ? .bold : .medium)
+                            .foregroundColor(registry.totalValue > budget ? .red : .primary)
+                    }
+                    
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(.systemGray6))
+                                .frame(height: 8)
+                            
+                            let percentage = min(registry.totalValue / budget, 1.0)
+                            Capsule()
+                                .fill(registry.totalValue > budget ? Color.red : Color.black)
+                                .frame(width: geometry.size.width * CGFloat(percentage), height: 8)
+                        }
+                    }
+                    .frame(height: 8)
+                    
+                    if registry.totalValue > budget {
+                        Text("You have exceeded your target budget.")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
     }
 }
 

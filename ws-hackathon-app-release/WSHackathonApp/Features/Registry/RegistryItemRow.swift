@@ -16,77 +16,106 @@ struct RegistryItemRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            
             CustomAsyncImage(url: viewModel.imageURL)
-                .frame(width: 90, height: 90)
-                .cornerRadius(12)
+                .frame(width: 110, height: 110)
+                .cornerRadius(16)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12)
+                    RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.black.opacity(0.05), lineWidth: 1)
                 )
+                .padding(.leading, 12)
+                .padding(.vertical, 12)
             
-            VStack(alignment: .leading, spacing: 8) {
-                
+            VStack(alignment: .leading, spacing: 4) {
                 Text(viewModel.title)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 16, weight: .regular))
                     .lineLimit(2)
                     .foregroundColor(.primary)
+                    .padding(.top, 12)
                 
                 Text(viewModel.priceText)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.black)
                 
-                HStack(spacing: 12) {
-                    HStack(spacing: 10) {
+                if viewModel.purchasedProgress > 0 {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("\(viewModel.purchasedQuantity) of \(viewModel.requestedQuantity) funded")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.gray)
+                            Spacer()
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color(.systemGray6)).frame(height: 6)
+                                Capsule().fill(Color.green).frame(width: geo.size.width * CGFloat(viewModel.purchasedProgress), height: 6)
+                            }
+                        }
+                        .frame(height: 6)
+                    }
+                    .padding(.top, 4)
+                    .padding(.trailing, 16)
+                }
+                
+                Spacer(minLength: 8)
+                
+                HStack(alignment: .center) {
+                    // Quantity selector
+                    HStack(spacing: 16) {
                         Button(action: viewModel.decreaseQty) {
                             Image(systemName: "minus")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.black)
-                                .frame(width: 24, height: 24)
-                                .background(Color(.systemGray6))
-                                .clipShape(Circle())
                         }
                         
                         Text(viewModel.quantityText)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 14, weight: .semibold))
                             .frame(minWidth: 16)
                         
                         Button(action: viewModel.increaseQty) {
                             Image(systemName: "plus")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.black)
-                                .frame(width: 24, height: 24)
-                                .background(Color(.systemGray6))
-                                .clipShape(Circle())
                         }
                     }
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color(.systemGray6).opacity(0.5))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(.systemGray6))
                     .cornerRadius(20)
+                    
+                    Spacer()
+                    
+                    if viewModel.isFullyFunded {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 28))
+                            .foregroundColor(.green)
+                            .padding(.trailing, 16)
+                    } else {
+                        Button(action: viewModel.addToCart) {
+                            Image(systemName: "cart.badge.plus")
+                                .font(.system(size: 22))
+                                .foregroundColor(.black)
+                        }
+                        .padding(.trailing, 8)
+                        
+                        Button(action: viewModel.removeItem) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 22))
+                                .foregroundColor(.red)
+                        }
+                        .padding(.trailing, 16)
+                    }
                 }
-            }
-            
-            Spacer()
-            
-            VStack(spacing: 16) {
-                Button(action: viewModel.addToCart) {
-                    Image(systemName: "cart.badge.plus")
-                        .font(.system(size: 18))
-                        .foregroundColor(.black)
-                }
-                
-                Button(action: viewModel.removeItem) {
-                    Image(systemName: "trash")
-                        .font(.system(size: 16))
-                        .foregroundColor(.red.opacity(0.7))
-                }
+                .padding(.bottom, 12)
             }
         }
-        .padding(12)
+        .opacity(viewModel.isFullyFunded ? 0.5 : 1.0)
+        .grayscale(viewModel.isFullyFunded ? 1.0 : 0.0)
+        .disabled(viewModel.isFullyFunded)
         .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 4)
+        .cornerRadius(24)
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
         .padding(.horizontal, 16)
+        .padding(.vertical, 4)
     }
 }

@@ -48,6 +48,26 @@ final class RegistryItemRowViewModel: ObservableObject {
         return URL(string: AppConstants.API.imageBasePath + url)
     }
     
+    var requestedQuantity: Int {
+        registryRepo.quantity(for: item, in: registryId)
+    }
+    
+    var purchasedQuantity: Int {
+        registryRepo.purchasedQuantity(for: item, in: registryId)
+    }
+    
+    var isFullyFunded: Bool {
+        let requested = requestedQuantity
+        let purchased = purchasedQuantity
+        return purchased >= requested && requested > 0
+    }
+    
+    var purchasedProgress: Double {
+        let requested = requestedQuantity
+        guard requested > 0 else { return 0.0 }
+        return min(Double(purchasedQuantity) / Double(requested), 1.0)
+    }
+    
     // MARK: - Actions
     
     func increaseQty() {
@@ -72,7 +92,5 @@ final class RegistryItemRowViewModel: ObservableObject {
         let quantityInRegistry = registryRepo.quantity(for: item, in: registryId)
         
         cartRepo.add(product: product, quantity: quantityInRegistry)
-        
-        tabBarVM.selectTab(.cart)
     }
 }

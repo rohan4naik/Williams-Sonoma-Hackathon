@@ -108,51 +108,77 @@ private extension RegistryView {
                 Button(action: {
                     tabBarVM.registryPath.append(.detail(registry.id))
                 }) {
-                    HStack(spacing: 16) {
-                        // Circular Image
-                        Group {
-                            if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFill()
-                            } else {
-                                ZStack {
-                                    Color(.systemGray6)
-                                    Image(systemName: "camera.fill")
-                                        .foregroundColor(.gray.opacity(0.5))
+                    VStack(spacing: 12) {
+                        HStack(spacing: 16) {
+                            // Circular Image
+                            Group {
+                                if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                } else {
+                                    ZStack {
+                                        Color(.systemGray6)
+                                        Image(systemName: "camera.fill")
+                                            .foregroundColor(.gray.opacity(0.5))
+                                    }
                                 }
                             }
-                        }
-                        .frame(width: 60, height: 60)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(registry.displayName)
-                                .font(.headline)
-                                .foregroundColor(.black)
-                                .lineLimit(1)
+                            .frame(width: 60, height: 60)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
                             
-                            Text(registry.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(registry.displayName)
+                                    .font(.headline)
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                                
+                                Text(registry.date.formatted(date: .abbreviated, time: .omitted))
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                Text(registry.event.title)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
                             
-                            Text(registry.event.title)
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("\(registry.items.count) items")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.gray.opacity(0.5))
+                            }
                         }
                         
-                        Spacer()
+                        // Progress bar for purchased items
+                        let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
+                        // For demo, if there are items but none purchased, randomly mock 1 or 2 as purchased
+                        let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
+                        let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
                         
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("\(registry.items.count) items")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.gray.opacity(0.5))
+                        VStack(spacing: 4) {
+                            HStack {
+                                Text("\(purchasedItems) of \(totalItems) items funded")
+                                    .font(.caption2)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color(.systemGray6)).frame(height: 6)
+                                    let progress = totalItems > 0 ? min(CGFloat(purchasedItems) / CGFloat(totalItems), 1.0) : 0
+                                    Capsule().fill(Color.black).frame(width: geo.size.width * progress, height: 6)
+                                }
+                            }
+                            .frame(height: 6)
                         }
+                        .padding(.top, 4)
                     }
                     .padding()
                     .background(Color.white)

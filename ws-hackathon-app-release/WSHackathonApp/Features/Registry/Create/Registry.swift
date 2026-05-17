@@ -19,6 +19,7 @@ struct Registry: Identifiable, Hashable {
     var items: [RegistryItem]
     var isCategorized: Bool = false
     var categories: [RegistryCategory] = RegistryCategory.predefined
+    var targetBudget: Double? = nil
     
     init(id: UUID = UUID(),
          createdAt: Date = Date(),
@@ -30,7 +31,8 @@ struct Registry: Identifiable, Hashable {
          imageData: Data? = nil,
          items: [RegistryItem] = [],
          isCategorized: Bool = false,
-         categories: [RegistryCategory] = RegistryCategory.predefined) {
+         categories: [RegistryCategory] = RegistryCategory.predefined,
+         targetBudget: Double? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.firstName = firstName
@@ -42,6 +44,11 @@ struct Registry: Identifiable, Hashable {
         self.items = items
         self.isCategorized = isCategorized
         self.categories = categories
+        self.targetBudget = targetBudget
+    }
+    
+    var totalValue: Double {
+        items.reduce(0) { $0 + ($1.price * Double($1.quantity)) }
     }
     
     var displayName: String {
