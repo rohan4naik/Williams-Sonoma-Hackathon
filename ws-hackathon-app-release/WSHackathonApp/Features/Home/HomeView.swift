@@ -52,24 +52,37 @@ struct HomeView: View {
                                 
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 16) {
-                                        CategoryCapsule(name: "New", icon: "sparkles", color: Color.cyan.opacity(0.15))
-                                        CategoryCapsule(name: "Cookware", icon: "frying.pan", color: Color.gray.opacity(0.15))
-                                        CategoryCapsule(name: "Cooks' Tools", icon: "timer", color: Color.teal.opacity(0.15))
-                                        CategoryCapsule(name: "Cutlery", icon: "fork.knife", color: Color.gray.opacity(0.2))
-                                        CategoryCapsule(name: "Electrics", icon: "bolt.fill", color: Color.yellow.opacity(0.2))
-                                        CategoryCapsule(name: "Bakeware", icon: "oven", color: Color.brown.opacity(0.15))
-                                        CategoryCapsule(name: "Food", icon: "carrot.fill", color: Color.orange.opacity(0.2))
-                                        CategoryCapsule(name: "Tabletop & Bar", icon: "wineglass", color: Color.purple.opacity(0.15))
-                                        CategoryCapsule(name: "Home Essentials", icon: "house.fill", color: Color.blue.opacity(0.15))
-                                        CategoryCapsule(name: "Outdoor & Garden", icon: "leaf.fill", color: Color.green.opacity(0.15))
-                                        CategoryCapsule(name: "Furniture", icon: "sofa.fill", color: Color.indigo.opacity(0.15))
-                                        CategoryCapsule(name: "Holidays", icon: "party.popper.fill", color: Color.pink.opacity(0.15))
-                                        CategoryCapsule(name: "Gifts", icon: "gift.fill", color: Color.yellow.opacity(0.15))
-                                        CategoryCapsule(name: "Sale", icon: "tag.fill", color: Color.red.opacity(0.2))
+                                        ForEach([
+                                            ("New",            "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/tea_set_1779007540759.png"),
+                                            ("Cookware",       "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/dutch_oven_1779007363974.png"),
+                                            ("Cooks' Tools",   "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/utensils_1779007398920.png"),
+                                            ("Cutlery",        "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/chef_knife_1779007379223.png"),
+                                            ("Electrics",      "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/pizza_oven_1779007606970.png"),
+                                            ("Bakeware",       "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/baking_sheet_1779007429395.png"),
+                                            ("Food",           "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80"),
+                                            ("Tabletop & Bar", "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/wine_glasses_1779007476041.png"),
+                                            ("Home Essentials","file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/candlesticks_1779007574028.png"),
+                                            ("Outdoor",        "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?q=80&w=400&auto=format&fit=crop"),
+                                            ("Furniture",      "file:///Users/rohannaik/.gemini/antigravity/brain/7bb55bfb-7636-487e-a083-bbe806baf00e/dining_table_1779007460233.png"),
+                                            ("Holidays",       "https://images.unsplash.com/photo-1545048702-79362596cdc9?q=80&w=400&auto=format&fit=crop"),
+                                            ("Gifts",          "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?q=80&w=400&auto=format&fit=crop"),
+                                            ("Sale",           "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?q=80&w=400&auto=format&fit=crop")
+                                        ], id: \.0) { name, imageUrl in
+                                            NavigationLink(destination:
+                                                CategoryDetailView(
+                                                    categoryName: name,
+                                                    allProducts: viewModel.products
+                                                )
+                                            ) {
+                                                CategoryCard(name: name, imageUrl: imageUrl)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
                                     }
                                     .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
                                 }
-                                .padding(.bottom, 32)
+                                .padding(.bottom, 24)
                                 
                                 Text("Most Loved")
                                     .font(.title3.bold())
@@ -86,8 +99,9 @@ struct HomeView: View {
                                         }
                                     }
                                     .padding(.horizontal, 16)
+                                    .padding(.vertical, 10)
                                 }
-                                .padding(.bottom, 32)
+                                .padding(.bottom, 22)
                                 
                                 Text("Explore All")
                                     .font(.title3.bold())
@@ -234,34 +248,36 @@ struct MostLovedCard: View {
         .frame(width: 300, height: 140)
         .background(bgColor)
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+        .shadow(color: Color.black.opacity(0.15), radius: 1, x: 0, y: 2)
     }
 }
 
-struct CategoryCapsule: View {
+struct CategoryCard: View {
     let name: String
-    let icon: String
-    var color: Color = Color(.systemBackground)
+    let imageUrl: String
     
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Circle()
-                    .fill(color)
-                    .frame(width: 60, height: 60)
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+        VStack(spacing: 10) {
+            ZStack(alignment: .topTrailing) {
+                CustomAsyncImage(url: URL(string: imageUrl))
+                    .frame(width: 118, height: 130)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 
-                Image(systemName: icon)
-                    .font(.system(size: 20))
-                    .foregroundColor(.primary)
+                // Native iOS-style chevron badge
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.black)
+                    .padding(6)
+                    .background(.ultraThinMaterial, in: Circle())
+                    .padding(8)
             }
+            .shadow(color: Color.black.opacity(0.15), radius: 1, x: 0, y: 2)
             
             Text(name)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.secondary)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(width: 85)
+        .frame(width: 118)
     }
 }
