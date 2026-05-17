@@ -63,10 +63,18 @@ final class CartRepository: ObservableObject {
     // MARK: - Save for Later
     func saveForLater(productId: String) {
         guard let index = items.firstIndex(where: { $0.id == productId }) else { return }
-        let item = items.remove(at: index)
+        
+        var item = items[index]
+        item.isSaved = true
+        
+        // Add to savedItems if not already there
         if !savedItems.contains(where: { $0.id == item.id }) {
             savedItems.append(item)
         }
+        
+        // Remove from active cart
+        items.remove(at: index)
+        
         saveCart()
     }
     

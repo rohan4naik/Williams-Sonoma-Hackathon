@@ -11,9 +11,9 @@ struct RecommendationCarousel: View {
     let onAdd: (ProductItem) -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(title)
-                .font(.headline)
+                .font(.system(size: 20, weight: .bold, design: .default))
                 .padding(.horizontal)
             
             ScrollView(.horizontal, showsIndicators: false) {
@@ -23,9 +23,10 @@ struct RecommendationCarousel: View {
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 12)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 12)
     }
 }
 
@@ -35,27 +36,27 @@ struct RecommendationCard: View {
     private let haptic = UIImpactFeedbackGenerator(style: .medium)
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            AsyncImage(url: product.imageURL) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                Color(.systemGray6)
-            }
-            .frame(width: 140, height: 140)
-            .cornerRadius(12)
-            .clipped()
+        VStack(alignment: .leading, spacing: 0) {
+            // TOP: Large product image (Hero)
+            CustomAsyncImage(url: product.imageURL)
+                .frame(width: 156, height: 156)
+                .aspectRatio(contentMode: .fill)
+                .clipped()
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 10) {
+                // MIDDLE: Product title (2 lines max)
                 Text(product.title)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.primary.opacity(0.9))
                     .lineLimit(2)
-                    .frame(height: 32, alignment: .topLeading)
+                    .multilineTextAlignment(.leading)
+                    .frame(height: 34, alignment: .top)
                 
-                HStack {
+                // BOTTOM: Price and Small elegant add button
+                HStack(alignment: .bottom) {
                     Text(product.price?.formatted(.currency(code: "USD")) ?? "")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.primary)
                     
                     Spacer()
                     
@@ -63,18 +64,20 @@ struct RecommendationCard: View {
                         haptic.impactOccurred()
                         onAdd(product)
                     }) {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(.black)
-                            .font(.system(size: 20))
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.primary)
+                            .frame(width: 22, height: 22)
+                            .background(Color(.systemGray5))
+                            .clipShape(Circle())
                     }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(12)
         }
-        .frame(width: 140)
-        .padding(8)
         .background(Color.white)
-        .cornerRadius(16)
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 5)
+        .frame(width: 156)
     }
 }

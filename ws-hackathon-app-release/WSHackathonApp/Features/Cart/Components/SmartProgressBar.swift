@@ -21,7 +21,7 @@ struct SmartProgressBar: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: "box.truck.fill")
-                    .foregroundColor(progress >= 1.0 ? .green : .black)
+                    .foregroundColor(.black)
                 
                 if progress >= 1.0 {
                     Text("You've unlocked **Free Shipping**!")
