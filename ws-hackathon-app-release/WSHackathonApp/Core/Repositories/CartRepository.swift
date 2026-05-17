@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 @MainActor
 final class CartRepository: ObservableObject {
@@ -70,6 +71,10 @@ final class CartRepository: ObservableObject {
         // Add to savedItems if not already there
         if !savedItems.contains(where: { $0.id == item.id }) {
             savedItems.append(item)
+            NotificationManager.shared.scheduleNotification(
+                title: "Saved for Later! 🍳",
+                body: "We've safely saved '\(item.title)'. We'll alert you the moment the price drops or stock runs low!"
+            )
         }
         
         // Remove from active cart
@@ -94,6 +99,10 @@ final class CartRepository: ObservableObject {
             )
             savedItems.append(newItem)
             saveCart()
+            NotificationManager.shared.scheduleNotification(
+                title: "Saved for Later! 🍳",
+                body: "We've safely saved '\(product.title)'. We'll alert you the moment the price drops or stock runs low!"
+            )
         }
     }
     
@@ -189,6 +198,15 @@ final class CartRepository: ObservableObject {
                 )
             ]
             saveCart()
+        }
+        
+        // Trigger simulated price drop push notification after 5 seconds to show off the smart alerting system!
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            NotificationManager.shared.scheduleNotification(
+                title: "Price Drop Alert! 📉",
+                body: "Great news! The 'Staub Enameled Cast Iron Round Dutch Oven, Basil' you saved has dropped 36% in price! Complete checkout now for $299.95.",
+                delay: 0.1
+            )
         }
     }
 
