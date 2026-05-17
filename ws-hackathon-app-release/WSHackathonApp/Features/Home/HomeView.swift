@@ -197,14 +197,16 @@ struct MostLovedCard: View {
                     image
                         .resizable()
                         .scaledToFill()
+                        .frame(width: 90, height: 90)
+                        .clipped()
                 } else if phase.error != nil {
                     Color.gray.opacity(0.2)
+                        .frame(width: 90, height: 90)
                 } else {
                     ProgressView()
+                        .frame(width: 90, height: 90)
                 }
             }
-            .frame(width: 90, height: 90)
-            .clipped()
             .padding(.trailing, 24)
         }
         .frame(width: 300, height: 140)
