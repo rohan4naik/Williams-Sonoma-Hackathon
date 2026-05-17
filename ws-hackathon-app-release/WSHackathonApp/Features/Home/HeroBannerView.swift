@@ -150,18 +150,14 @@ struct HeroSlideView: View {
                         .frame(maxWidth: 280, alignment: .leading)
                         .multilineTextAlignment(.leading)
                     
-                    HStack {
-                        Text(item.buttonText)
-                            .font(.system(size: 14, weight: .bold))
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 12, weight: .bold))
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 14)
-                    .background(Color.primary)
-                    .foregroundColor(Color(.systemBackground))
-                    .cornerRadius(2)
-                    .padding(.top, 8)
+                    Text(item.buttonText)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: 280)
+                        .frame(height: 50)
+                        .background(Color.black)
+                        .cornerRadius(14)
+                        .padding(.top, 6)
                 }
                 .padding(24)
                 .padding(.bottom, 20) // Extra space for the gradient merge

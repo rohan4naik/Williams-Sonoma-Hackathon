@@ -14,6 +14,32 @@ struct HeroDetailView: View {
         GridItem(.flexible(), spacing: 16)
     ]
     
+    @State private var searchText = ""
+    @State private var showFilterSheet = false
+    @State private var selectedSort: SortOption = .newest
+    @State private var maxPrice: Double = 1000
+    
+    private var searchResults: [ProductItem] {
+        var results = products
+        
+        if !searchText.isEmpty {
+            results = results.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        }
+        
+        results = results.filter { ($0.price ?? 0.0) <= maxPrice }
+        
+        switch selectedSort {
+        case .newest:
+            break
+        case .priceHighToLow:
+            results.sort { ($0.price ?? 0.0) > ($1.price ?? 0.0) }
+        case .priceLowToHigh:
+            results.sort { ($0.price ?? 0.0) < ($1.price ?? 0.0) }
+        }
+        
+        return results
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -21,10 +47,18 @@ struct HeroDetailView: View {
                     .font(.system(.subheadline, design: .serif))
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
-                    .padding(.bottom, 8)
+                
+                HStack {
+                    Text("\(searchResults.count) items")
+                        .font(.system(.subheadline, design: .serif))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
                 
                 LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(products) { product in
+                    ForEach(searchResults) { product in
                         NavigationLink(destination: ProductDetailView(
                             product: product,
                             relatedProducts: Array(products.filter { $0.id != product.id }.shuffled().prefix(6))
@@ -54,6 +88,21 @@ struct HeroDetailView: View {
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search products")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showFilterSheet = true
+                }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundColor(.primary)
+                }
+            }
+        }
+        .sheet(isPresented: $showFilterSheet) {
+            CategoryFilterSheet(selectedSort: $selectedSort, priceRange: $maxPrice)
+                .presentationDetents([.medium, .large])
+        }
         .background(Color(.systemGroupedBackground))
     }
     
