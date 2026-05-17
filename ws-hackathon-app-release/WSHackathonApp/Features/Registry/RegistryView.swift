@@ -23,6 +23,9 @@ struct RegistryView: View {
     
     @State private var selectedInstruction: RegistryInstruction?
     
+    @EnvironmentObject var collabManager: CollaborationManager
+    @State private var showingJoinSheet = false
+    
     var body: some View {
         NavigationStack(path: $tabBarVM.registryPath) {
             ZStack {
@@ -42,6 +45,17 @@ struct RegistryView: View {
             .navigationTitle(AppStrings.Registry.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { showingJoinSheet = true }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.badge.plus")
+                            Text("Join")
+                                .font(.subheadline)
+                        }
+                        .foregroundColor(.black)
+                    }
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         tabBarVM.registryPath.append(.create)
@@ -91,6 +105,11 @@ struct RegistryView: View {
                 }
                 .padding(24)
                 .presentationDetents([.fraction(0.4), .medium])
+            }
+            .sheet(isPresented: $showingJoinSheet) {
+                JoinRegistryView()
+                    .environmentObject(registryRepo)
+                    .environmentObject(collabManager)
             }
         }
         .onAppear {

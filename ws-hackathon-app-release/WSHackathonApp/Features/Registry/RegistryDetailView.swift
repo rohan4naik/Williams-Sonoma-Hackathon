@@ -27,6 +27,17 @@ struct RegistryDetailView: View {
     @State private var collapsedCategoryIds: Set<UUID> = []
     @State private var isUncategorizedCollapsed = false
     
+    // Collaboration UI States
+    @EnvironmentObject var collabManager: CollaborationManager
+    @State private var showingShareSheet = false
+    @State private var showingJoinSheet = false
+    @State private var shareToken = ""
+    @State private var showingContributionFor: RegistryItem? = nil
+    @State private var showingCollabRequests = false
+    @State private var copiedToClipboard = false
+    @State private var selectedCollaborator: Collaborator? = nil
+    @State private var showingPermissionDialog = false
+    
     private var registry: Registry? {
         registryRepo.registries.first { $0.id == registryId }
     }
@@ -122,6 +133,64 @@ struct RegistryDetailView: View {
                             .cornerRadius(16)
                             .padding(.horizontal, 16)
                             
+                            // Collaborators section
+                            if !collabManager.collaborators(for: registryId).isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Collaborators")
+                                        .font(.headline)
+                                        .padding(.horizontal, 16)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(collabManager.collaborators(for: registryId)) { collaborator in
+                                                VStack(spacing: 6) {
+                                                    Circle()
+                                                        .fill(Color.black)
+                                                        .frame(width: 44, height: 44)
+                                                        .overlay(
+                                                            Text(String(collaborator.name.prefix(2)).uppercased())
+                                                                .font(.caption.bold())
+                                                                .foregroundColor(.white)
+                                                        )
+                                                    if collaborator.permission == .full {
+                                                        Text("Full")
+                                                            .font(.system(size: 9))
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2)
+                                                            .background(Color.green)
+                                                            .clipShape(Capsule())
+                                                    }
+                                                }
+                                                .contentShape(Rectangle())
+                                                .onTapGesture {
+                                                    selectedCollaborator = collaborator
+                                                    showingPermissionDialog = true
+                                                }
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
+                                    }
+                                }
+                                .confirmationDialog(
+                                    "Manage Permissions for \(selectedCollaborator?.name ?? "Collaborator")",
+                                    isPresented: $showingPermissionDialog,
+                                    titleVisibility: .visible
+                                ) {
+                                    Button("Full Access") {
+                                        if let collab = selectedCollaborator {
+                                            collabManager.updatePermission(.full, for: collab.id, in: registryId)
+                                        }
+                                    }
+                                    Button("Limited") {
+                                        if let collab = selectedCollaborator {
+                                            collabManager.updatePermission(.limited, for: collab.id, in: registryId)
+                                        }
+                                    }
+                                    Button("Cancel", role: .cancel) {}
+                                }
+                            }
+                            
                             // Items List
                             VStack(alignment: .leading, spacing: 16) {
                                 HStack {
@@ -185,16 +254,8 @@ struct RegistryDetailView: View {
                                                     if !isUncategorizedCollapsed {
                                                         VStack(spacing: 12) {
                                                             ForEach(registry.uncategorizedItems) { item in
-                                                                RegistryItemRow(
-                                                                    viewModel: RegistryItemRowViewModel(
-                                                                        item: item,
-                                                                        registryId: registryId,
-                                                                        registryRepo: registryRepo,
-                                                                        cartRepo: cartRepo,
-                                                                        tabbarVM: tabBarVM
-                                                                    )
-                                                                )
-                                                                .draggable(item.id)
+                                                                registryItemRow(for: item, in: registryId)
+                                                                    .draggable(item.id)
                                                             }
                                                         }
                                                         .padding(.horizontal, 12)
@@ -283,16 +344,8 @@ struct RegistryDetailView: View {
                                                             } else {
                                                                 VStack(spacing: 12) {
                                                                     ForEach(categoryItems) { item in
-                                                                        RegistryItemRow(
-                                                                            viewModel: RegistryItemRowViewModel(
-                                                                                item: item,
-                                                                                registryId: registryId,
-                                                                                registryRepo: registryRepo,
-                                                                                cartRepo: cartRepo,
-                                                                                tabbarVM: tabBarVM
-                                                                            )
-                                                                        )
-                                                                        .draggable(item.id)
+                                                                        registryItemRow(for: item, in: registryId)
+                                                                            .draggable(item.id)
                                                                     }
                                                                 }
                                                                 .padding(.horizontal, 12)
@@ -338,15 +391,7 @@ struct RegistryDetailView: View {
                                         // Standard flat list of items
                                         VStack(spacing: 12) {
                                             ForEach(registry.items) { item in
-                                                RegistryItemRow(
-                                                    viewModel: RegistryItemRowViewModel(
-                                                        item: item,
-                                                        registryId: registryId,
-                                                        registryRepo: registryRepo,
-                                                        cartRepo: cartRepo,
-                                                        tabbarVM: tabBarVM
-                                                    )
-                                                )
+                                                registryItemRow(for: item, in: registryId)
                                             }
                                         }
                                         .padding(.horizontal, 16)
@@ -402,6 +447,40 @@ struct RegistryDetailView: View {
                 .navigationTitle(registry.displayName)
                 .navigationBarTitleDisplayMode(.inline)
                 .searchable(text: $searchText, prompt: "Search products to add...")
+                .toolbar {
+                    // Share button
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            shareToken = collabManager.generateToken(for: registryId)
+                            UIPasteboard.general.string = "ws://registry/\(shareToken)"
+                            withAnimation { copiedToClipboard = true }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                withAnimation { copiedToClipboard = false }
+                            }
+                        }) {
+                            Image(systemName: copiedToClipboard ? "checkmark" : "square.and.arrow.up")
+                                .foregroundColor(.black)
+                        }
+                    }
+                    
+                    // Requests badge button (only if pending requests exist)
+                    if !collabManager.pendingRequests(for: registryId).isEmpty {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink(destination: CollabRequestsView(registryId: registryId)
+                                .environmentObject(registryRepo)
+                                .environmentObject(collabManager)) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bell.fill")
+                                        .foregroundColor(.black)
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 4, y: -4)
+                                }
+                            }
+                        }
+                    }
+                }
                 .sheet(isPresented: $showingAddCategorySheet) {
                     AddCategorySheet(
                         registry: registry,
@@ -409,6 +488,27 @@ struct RegistryDetailView: View {
                         tappedPredefinedCategoryIds: $tappedPredefinedCategoryIds
                     )
                     .environmentObject(registryRepo)
+                }
+                .sheet(item: $showingContributionFor) { item in
+                    ContributionView(item: item, registryId: registryId)
+                        .environmentObject(collabManager)
+                }
+                .overlay(alignment: .top) {
+                    if copiedToClipboard {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Invite code copied!")
+                                .font(.subheadline.bold())
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color.white)
+                        .cornerRadius(24)
+                        .shadow(color: .black.opacity(0.1), radius: 10)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
                 .confirmationDialog(
                     "Are you sure you want to delete this registry?",
@@ -429,6 +529,58 @@ struct RegistryDetailView: View {
             if registryRepo.registries.first(where: { $0.id == registryId }) == nil {
                 dismiss()
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func registryItemRow(for item: RegistryItem, in registryId: UUID) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            RegistryItemRow(
+                viewModel: RegistryItemRowViewModel(
+                    item: item,
+                    registryId: registryId,
+                    registryRepo: registryRepo,
+                    cartRepo: cartRepo,
+                    tabbarVM: tabBarVM
+                )
+            )
+            
+            // Contribution tags
+            let itemContributions = collabManager.contributions(for: item.id, in: registryId)
+            if !itemContributions.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(itemContributions) { contribution in
+                        HStack(spacing: 4) {
+                            Image(systemName: contribution.isFullPayment ? "gift.fill" : "dollarsign.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(contribution.isFullPayment ? .green : .blue)
+                            Text(contribution.isFullPayment ?
+                                 "Gifted by \(contribution.contributorName)" :
+                                 "Contributed \(contribution.amount.formatted(.currency(code: "USD"))) by \(contribution.contributorName)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
+            
+            Button(action: { showingContributionFor = item }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "dollarsign.circle")
+                        .font(.caption)
+                    Text("Contribute or Gift")
+                        .font(.caption)
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color(.systemGray6))
+                .cornerRadius(8)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
     }
     

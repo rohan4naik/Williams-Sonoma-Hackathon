@@ -12,6 +12,12 @@ struct WSHackathonAppApp: App {
      @StateObject private var registryRepo = RegistryRepository()
      @StateObject private var cartRepo = CartRepository()
      @StateObject private var tabBarVM = WSTabBarViewModel()
+     @StateObject private var userProfileRepo = UserProfileRepository.shared
+     @StateObject private var collabManager = CollaborationManager.shared
+     
+    init() {
+        CollaborationManager.shared.requestNotificationPermission()
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -19,6 +25,8 @@ struct WSHackathonAppApp: App {
                 .environmentObject(registryRepo)
                 .environmentObject(cartRepo)
                 .environmentObject(tabBarVM)
+                .environmentObject(userProfileRepo)
+                .environmentObject(collabManager)
         }
     }
 }
