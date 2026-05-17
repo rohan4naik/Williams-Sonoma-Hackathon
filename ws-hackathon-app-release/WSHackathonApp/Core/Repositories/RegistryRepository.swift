@@ -76,34 +76,48 @@ final class RegistryRepository: ObservableObject {
     }
     
     private func locateAndModifyRegistry(id: UUID, block: (inout Registry) -> Void) {
+        NSLog("DEBUG: locateAndModifyRegistry - searching for %@", id.uuidString)
         if let idx = registries.firstIndex(where: { $0.id == id }) {
+            NSLog("DEBUG: locateAndModifyRegistry - found registry in current active registries at index %d", idx)
             block(&registries[idx])
         } else {
+            var found = false
             for (userId, userRegs) in allUserRegistries {
                 if let idx = userRegs.firstIndex(where: { $0.id == id }) {
+                    NSLog("DEBUG: locateAndModifyRegistry - found registry in allUserRegistries for user %@ at index %d", userId.uuidString, idx)
                     var modifiedRegs = userRegs
                     block(&modifiedRegs[idx])
                     allUserRegistries[userId] = modifiedRegs
+                    found = true
                     break
                 }
+            }
+            if !found {
+                NSLog("DEBUG: locateAndModifyRegistry - registry NOT found anywhere!")
             }
         }
     }
     
     // MARK: - Product Management
     func addProduct(_ product: RegistryItem, to registryId: UUID) {
+        NSLog("DEBUG: addProduct - product: %@, registryId: %@", product.title, registryId.uuidString)
         locateAndModifyRegistry(id: registryId) { registry in
             if let itemIndex = registry.items.firstIndex(where: { $0.id == product.id }) {
                 registry.items[itemIndex].quantity += 1
+                NSLog("DEBUG: addProduct - incremented qty to %d for existing product", registry.items[itemIndex].quantity)
             } else {
                 registry.items.append(product)
+                NSLog("DEBUG: addProduct - appended new product. Total items now: %d", registry.items.count)
             }
         }
     }
     
     func removeProduct(productId: String, from registryId: UUID) {
+        NSLog("DEBUG: removeProduct - productId: %@, registryId: %@", productId, registryId.uuidString)
         locateAndModifyRegistry(id: registryId) { registry in
+            let initialCount = registry.items.count
             registry.items.removeAll { $0.id == productId }
+            NSLog("DEBUG: removeProduct - removed. Initial count: %d, final count: %d", initialCount, registry.items.count)
         }
     }
     

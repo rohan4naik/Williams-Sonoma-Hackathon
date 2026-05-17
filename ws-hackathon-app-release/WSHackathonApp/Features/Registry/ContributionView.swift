@@ -10,6 +10,7 @@ struct ContributionView: View {
     let registryId: UUID
     let currentUserName: String
     @EnvironmentObject var collabManager: CollaborationManager
+    @EnvironmentObject var registryRepo: RegistryRepository
     @Environment(\.dismiss) var dismiss
     
     @State private var contributionAmount = ""
@@ -110,7 +111,8 @@ struct ContributionView: View {
                             itemTitle: item.title,
                             contributorName: currentUserName,
                             amount: item.price,
-                            isFullPayment: true
+                            isFullPayment: true,
+                            registryRepo: registryRepo
                         )
                         showSuccess = true
                     }) {
@@ -153,7 +155,8 @@ struct ContributionView: View {
                                     itemTitle: item.title,
                                     contributorName: currentUserName,
                                     amount: min(amount, remainingAmount),
-                                    isFullPayment: false
+                                    isFullPayment: false,
+                                    registryRepo: registryRepo
                                 )
                                 contributionAmount = ""
                                 showSuccess = true

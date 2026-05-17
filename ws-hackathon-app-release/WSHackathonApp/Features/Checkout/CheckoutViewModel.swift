@@ -81,7 +81,13 @@ class CheckoutViewModel: ObservableObject {
     }
     
     var subtotal: Double {
-        items.reduce(0) { $0 + ($1.price * Double($1.quantity)) }
+        items.reduce(0) { total, cartItem in
+            let itemContributions = CollaborationManager.shared.contributions
+                .filter { $0.itemId == cartItem.id }
+            let totalContributedForThisItem = itemContributions.reduce(0.0) { $0 + $1.amount }
+            let itemTotal = (cartItem.price * Double(cartItem.quantity)) - totalContributedForThisItem
+            return total + max(0.0, itemTotal)
+        }
     }
     
     var shippingFee: Double {

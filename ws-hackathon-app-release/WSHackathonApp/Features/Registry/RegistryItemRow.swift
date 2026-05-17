@@ -8,10 +8,10 @@ import SwiftUI
 
 struct RegistryItemRow: View {
     
-    @StateObject private var viewModel: RegistryItemRowViewModel
+    @ObservedObject private var viewModel: RegistryItemRowViewModel
     
     init(viewModel: RegistryItemRowViewModel) {
-        _viewModel = StateObject(wrappedValue: viewModel)
+        self.viewModel = viewModel
     }
     
     var body: some View {
@@ -61,36 +61,52 @@ struct RegistryItemRow: View {
                 
                 HStack(alignment: .center) {
                     // Quantity selector
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 16) {
-                            Button(action: viewModel.decreaseQty) {
-                                Image(systemName: "minus")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.black)
+                    if !viewModel.isFullyFunded {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 16) {
+                                Button(action: viewModel.decreaseQty) {
+                                    Image(systemName: "minus")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.black)
+                                }
+                                
+                                Text(viewModel.quantityText)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(minWidth: 16)
+                                
+                                Button(action: viewModel.increaseQty) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.black)
+                                }
                             }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(20)
                             
-                            Text(viewModel.quantityText)
-                                .font(.system(size: 14, weight: .semibold))
-                                .frame(minWidth: 16)
-                            
-                            Button(action: viewModel.increaseQty) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.black)
+                            if viewModel.isCollaborator && !viewModel.canActDirectly {
+                                Text("Changes require owner approval")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 12)
+                                    .padding(.bottom, 4)
                             }
+                        }
+                    } else {
+                        // Fully Paid checkmark badge
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(.green)
+                            Text("Fully Paid")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.green)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color(.systemGray6))
+                        .background(Color.green.opacity(0.12))
                         .cornerRadius(20)
-                        
-                        if viewModel.isCollaborator && !viewModel.canActDirectly {
-                            Text("Changes require owner approval")
-                                .font(.system(size: 10))
-                                .foregroundColor(.orange)
-                                .padding(.horizontal, 12)
-                                .padding(.bottom, 4)
-                        }
                     }
                     
                     Spacer()
@@ -106,9 +122,9 @@ struct RegistryItemRow: View {
                                 .font(.system(size: 22))
                                 .foregroundColor(.black)
                         }
-                        .padding(.trailing, viewModel.canActDirectly ? 8 : 16)
+                        .padding(.trailing, viewModel.canActDirectly && viewModel.totalContributed == 0 ? 8 : 16)
                         
-                        if viewModel.canActDirectly {
+                        if viewModel.canActDirectly && viewModel.totalContributed == 0 {
                             Button(action: viewModel.removeItem) {
                                 Image(systemName: "trash")
                                     .font(.system(size: 22))
