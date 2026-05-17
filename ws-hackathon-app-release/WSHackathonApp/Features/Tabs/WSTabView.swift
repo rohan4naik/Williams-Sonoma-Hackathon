@@ -11,6 +11,7 @@ struct WSTabView: View {
     @EnvironmentObject var viewModel: WSTabBarViewModel
     @EnvironmentObject var cartRepository: CartRepository
     @EnvironmentObject var registryRepository: RegistryRepository
+    @EnvironmentObject var collabManager: CollaborationManager
     
     init() {
         let appearance = UITabBarAppearance()
@@ -55,8 +56,12 @@ struct WSTabView: View {
             HomeView()
         case .registry:
             RegistryView()
+                .environmentObject(collabManager)
         case .cart:
             CartView()
+        case .profile:
+            ProfileView()
+                .environmentObject(registryRepository)
         }
     }
 }

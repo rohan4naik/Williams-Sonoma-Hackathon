@@ -5,137 +5,221 @@
 
 import SwiftUI
 
-struct ProfileSheetView: View {
+struct ProfileContentView: View {
     @EnvironmentObject var registryRepository: RegistryRepository
-    @Binding var isPresented: Bool
+    @EnvironmentObject var profileRepo: UserProfileRepository
     
-    @State private var email = "kunalkhude29@gmail.com"
-    @State private var name = "Kunal Khude"
+    private var name: String {
+        profileRepo.profile?.name ?? "Demo User"
+    }
+    
+    private var email: String {
+        profileRepo.profile?.email ?? "demo@hackathon.com"
+    }
+    
+    private var initials: String {
+        let parts = name.split(separator: " ").map(String.init)
+        guard let first = parts.first?.prefix(1), let last = parts.last?.prefix(1) else {
+            return "DU"
+        }
+        if parts.count > 1 {
+            return "\(first)\(last)".uppercased()
+        } else {
+            return "\(first)".uppercased()
+        }
+    }
     
     var body: some View {
-        NavigationStack {
-            List {
-                // ACCOUNT INFO
-                Section {
-                    HStack(spacing: 16) {
-                        Circle()
-                            .fill(Color.black)
-                            .frame(width: 50, height: 50)
-                            .overlay(
-                                Text("KK")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            )
-                        
-                        VStack(alignment: .leading, spacing: 4) {
+        List {
+            // ACCOUNT INFO
+            Section {
+                HStack(spacing: 16) {
+                    Circle()
+                        .fill(Color.black)
+                        .frame(width: 50, height: 50)
+                        .overlay(
+                            Text(initials)
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        )
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
                             Text(name)
                                 .font(.headline)
-                            Text(email)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                
-                // ORDERS SECTION (TRACKING & PAST ORDERS)
-                Section(header: Text("My Orders")) {
-                    NavigationLink(destination: ProfileTrackShipmentsListView()) {
-                        HStack {
-                            Image(systemName: "box.truck")
-                                .foregroundColor(.indigo)
-                                .frame(width: 24)
-                            Text("Track Active Orders")
                             Spacer()
-                            let activeCount = ProductRepository.shared.products.count >= 6 ? 2 : 1
-                            Text("\(activeCount) active")
-                                .font(.caption.bold())
-                                .foregroundColor(.indigo)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.indigo.opacity(0.12))
-                                .clipShape(Capsule())
+                            NavigationLink(destination: ProfileEditView().environmentObject(profileRepo)) {
+                                Text("Edit")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                            }
                         }
-                    }
-                    
-                    NavigationLink(destination: ProfilePastOrdersView()) {
-                        HStack {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.gray)
-                                .frame(width: 24)
-                            Text("Past Orders")
-                            Spacer()
-                            let ordersCount = ProductRepository.shared.products.count >= 4 ? 3 : 0
-                            Text("\(ordersCount) orders")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                
-                // REGISTRIES
-                Section(header: Text("Gift Registries")) {
-                    NavigationLink(destination: ProfileRegistryListView()) {
-                        HStack {
-                            Image(systemName: "gift")
-                                .foregroundColor(.green)
-                                .frame(width: 24)
-                            Text("My Registries")
-                            Spacer()
-                            Text("\(registryRepository.registries.count) active")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-                
-                // ACCOUNT SETTINGS
-                Section(header: Text("Account Settings")) {
-                    HStack {
-                        Image(systemName: "creditcard")
-                            .foregroundColor(.purple)
-                            .frame(width: 24)
-                        Text("Payment Methods")
-                        Spacer()
-                        Text("Apple Pay")
+                        Text(email)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Image(systemName: "mappin.and.ellipse")
-                            .foregroundColor(.red)
-                            .frame(width: 24)
-                        Text("Saved Addresses")
-                        Spacer()
-                        Text("1 address")
-                            .font(.subheadline)
+                        Text(profileRepo.phoneNumber)
+                            .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+                }
+                .padding(.vertical, 4)
+            }
+            
+            // SAVED ADDRESSES SECTION
+            Section(header: Text("Saved Addresses")) {
+                if let selectedAddress = profileRepo.savedAddresses.first(where: { $0.isSelected }) {
+                    NavigationLink(destination: SavedAddressesView().environmentObject(profileRepo)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(selectedAddress.label)
+                                    .font(.subheadline.bold())
+                                Spacer()
+                                Text("See All")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            Text(selectedAddress.street)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(selectedAddress.city), \(selectedAddress.state) \(selectedAddress.zipCode)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else {
+                    NavigationLink(destination: SavedAddressesView().environmentObject(profileRepo)) {
+                        HStack {
+                            Text("No Address Selected")
+                            Spacer()
+                            Text("See All")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+            
+            // MY ORDERS SECTION (TRACKING & PAST ORDERS)
+            Section(header: Text("My Orders")) {
+                NavigationLink(destination: ProfileTrackShipmentsListView()) {
                     HStack {
-                        Image(systemName: "bell")
-                            .foregroundColor(.blue)
+                        Image(systemName: "box.truck")
+                            .foregroundColor(.indigo)
                             .frame(width: 24)
-                        Text("Notifications")
+                        Text("Track Active Orders")
                         Spacer()
-                        Text("Enabled")
+                        let activeCount = ProductRepository.shared.products.count >= 6 ? 2 : 1
+                        Text("\(activeCount) active")
+                            .font(.caption.bold())
+                            .foregroundColor(.indigo)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.indigo.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                
+                NavigationLink(destination: ProfilePastOrdersView()) {
+                    HStack {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundColor(.gray)
+                            .frame(width: 24)
+                        Text("Past Orders")
+                        Spacer()
+                        let ordersCount = ProductRepository.shared.products.count >= 4 ? 3 : 0
+                        Text("\(ordersCount) orders")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Account")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        isPresented = false
+            
+            // REGISTRIES
+            Section(header: Text("Gift Registries")) {
+                NavigationLink(destination: ProfileRegistryListView()) {
+                    HStack {
+                        Image(systemName: "gift")
+                            .foregroundColor(.green)
+                            .frame(width: 24)
+                        Text("My Registries")
+                        Spacer()
+                        Text("\(registryRepository.registries.count) active")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                     }
-                    .fontWeight(.semibold)
                 }
             }
+            
+            // ACCOUNT SETTINGS
+            Section(header: Text("Account Settings")) {
+                HStack {
+                    Image(systemName: "creditcard")
+                        .foregroundColor(.purple)
+                        .frame(width: 24)
+                    Text("Payment Methods")
+                    Spacer()
+                    Text("Apple Pay")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                
+                HStack {
+                    Image(systemName: "bell")
+                        .foregroundColor(.blue)
+                        .frame(width: 24)
+                    Text("Notifications")
+                    Spacer()
+                    Text("Enabled")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+    }
+}
+
+// MARK: - Profile Edit View
+struct ProfileEditView: View {
+    @EnvironmentObject var profileRepo: UserProfileRepository
+    @Environment(\.dismiss) var dismiss
+    
+    @State private var name: String = ""
+    @State private var email: String = ""
+    @State private var phone: String = ""
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Personal Information")) {
+                TextField("Name", text: $name)
+                TextField("Email", text: $email)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                TextField("Phone Number", text: $phone)
+                    .keyboardType(.phonePad)
+            }
+        }
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("Save") {
+                    let updated = UserProfile(
+                        id: profileRepo.profile?.id ?? "user_001",
+                        name: name,
+                        email: email
+                    )
+                    profileRepo.profile = updated
+                    profileRepo.phoneNumber = phone
+                    dismiss()
+                }
+                .disabled(name.isEmpty || email.isEmpty)
+            }
+        }
+        .onAppear {
+            name = profileRepo.profile?.name ?? "Demo User"
+            email = profileRepo.profile?.email ?? "demo@hackathon.com"
+            phone = profileRepo.phoneNumber
         }
     }
 }
