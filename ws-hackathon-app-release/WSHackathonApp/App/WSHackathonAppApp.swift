@@ -13,6 +13,10 @@ struct WSHackathonAppApp: App {
      @StateObject private var cartRepo = CartRepository()
      @StateObject private var tabBarVM = WSTabBarViewModel()
     
+    init() {
+        NotificationManager.shared.requestPermission()
+    }
+    
     var body: some Scene {
         WindowGroup {
             WSTabView()
