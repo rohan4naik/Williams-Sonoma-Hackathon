@@ -17,6 +17,8 @@ struct Registry: Identifiable, Hashable {
     let date: Date
     let imageData: Data?
     var items: [RegistryItem]
+    var isCategorized: Bool = false
+    var categories: [RegistryCategory] = RegistryCategory.predefined
     
     init(id: UUID = UUID(),
          createdAt: Date = Date(),
@@ -26,7 +28,9 @@ struct Registry: Identifiable, Hashable {
          customTitle: String? = nil,
          date: Date,
          imageData: Data? = nil,
-         items: [RegistryItem] = []) {
+         items: [RegistryItem] = [],
+         isCategorized: Bool = false,
+         categories: [RegistryCategory] = RegistryCategory.predefined) {
         self.id = id
         self.createdAt = createdAt
         self.firstName = firstName
@@ -36,11 +40,21 @@ struct Registry: Identifiable, Hashable {
         self.date = date
         self.imageData = imageData
         self.items = items
+        self.isCategorized = isCategorized
+        self.categories = categories
     }
     
     var displayName: String {
         let eventName = (event == .other && !(customTitle?.isEmpty ?? true)) ? customTitle! : event.title
         return "\(firstName) \(lastName) - \(eventName)"
+    }
+    
+    func items(for categoryId: UUID) -> [RegistryItem] {
+        items.filter { $0.categoryId == categoryId }
+    }
+    
+    var uncategorizedItems: [RegistryItem] {
+        items.filter { $0.categoryId == nil }
     }
     
     // MARK: - Hashable & Equality

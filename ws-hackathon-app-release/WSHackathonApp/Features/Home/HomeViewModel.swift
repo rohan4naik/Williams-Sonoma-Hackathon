@@ -38,12 +38,25 @@ class HomeViewModel: ObservableObject {
     func addToRegistry(_ product: ProductItem) {
         guard let repo = registryRepository,
               let activeId = repo.activeRegistryId else { return }
+        
+        // Match pattern to a predefined registry category
+        let matchedCategory = RegistryCategory.matchingCategory(
+            for: product.pattern
+        )
+        // Find the actual category instance in the registry
+        // (predefined categories are stored per-registry)
+        let registry = repo.registries.first { $0.id == activeId }
+        let categoryId = registry?.categories.first { 
+            $0.name == matchedCategory?.name 
+        }?.id
+        
         let registryItem = RegistryItem(
             id: product.id,
             title: product.title,
             price: product.price ?? 0.0,
             imageUrl: product.path,
-            quantity: 1
+            quantity: 1,
+            categoryId: categoryId
         )
         repo.addProduct(registryItem, to: activeId)
     }

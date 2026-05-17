@@ -96,4 +96,55 @@ final class RegistryRepository: ObservableObject {
     func quantity(for registryItem: RegistryItem, in registryId: UUID) -> Int {
         registries.first { $0.id == registryId }?.items.first(where: { $0.id == registryItem.id })?.quantity ?? 0
     }
+    
+    // MARK: - Categorization
+    
+    // Toggle categorization mode on/off for a registry
+    func toggleCategorized(for registryId: UUID) {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        registries[index].isCategorized.toggle()
+    }
+    
+    // Add a custom category to a specific registry
+    func addCustomCategory(name: String, to registryId: UUID) -> RegistryCategory? {
+        guard let index = registries.firstIndex(where: { $0.id == registryId }) else { return nil }
+        let newCategory = RegistryCategory(id: UUID(), name: name, isCustom: true)
+        registries[index].categories.append(newCategory)
+        return newCategory
+    }
+    
+    // Delete a custom category — reassign its items to nil (uncategorized)
+    func deleteCustomCategory(categoryId: UUID, from registryId: UUID) {
+        guard let registryIndex = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        
+        // Remove the category
+        registries[registryIndex].categories.removeAll { $0.id == categoryId }
+        
+        // Reassign items to nil (uncategorized)
+        for itemIndex in registries[registryIndex].items.indices {
+            if registries[registryIndex].items[itemIndex].categoryId == categoryId {
+                registries[registryIndex].items[itemIndex].categoryId = nil
+                registries[registryIndex].items[itemIndex].customCategoryName = nil
+            }
+        }
+    }
+    
+    // Move an item to a different category (for drag and drop)
+    func moveItem(itemId: String, toCategoryId: UUID?, in registryId: UUID) {
+        guard let registryIndex = registries.firstIndex(where: { $0.id == registryId }) else { return }
+        guard let itemIndex = registries[registryIndex].items.firstIndex(where: { $0.id == itemId }) else { return }
+        
+        registries[registryIndex].items[itemIndex].categoryId = toCategoryId
+        
+        if let catId = toCategoryId,
+           let category = registries[registryIndex].categories.first(where: { $0.id == catId }) {
+            if category.isCustom {
+                registries[registryIndex].items[itemIndex].customCategoryName = category.name
+            } else {
+                registries[registryIndex].items[itemIndex].customCategoryName = nil
+            }
+        } else {
+            registries[registryIndex].items[itemIndex].customCategoryName = nil
+        }
+    }
 }

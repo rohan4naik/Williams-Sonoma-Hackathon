@@ -359,12 +359,19 @@ struct ProductDetailView: View {
                         
                         if let activeId = registryRepository.activeRegistryId {
                             generator.notificationOccurred(.success)
+                            
+                            // Match pattern to predefined registry category
+                            let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                            let registry = registryRepository.registries.first { $0.id == activeId }
+                            let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                            
                             let item = RegistryItem(
                                 id: product.id,
                                 title: product.title,
                                 price: product.price ?? 0.0,
                                 imageUrl: product.path,
-                                quantity: quantity
+                                quantity: quantity,
+                                categoryId: categoryId
                             )
                             registryRepository.addProduct(item, to: activeId)
                             
