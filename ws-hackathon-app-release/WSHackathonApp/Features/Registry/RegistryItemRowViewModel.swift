@@ -18,6 +18,7 @@ final class RegistryItemRowViewModel: ObservableObject {
     private let tabBarVM: WSTabBarViewModel
     private let collabManager: CollaborationManager
     private let currentUserName: String
+    private var cancellables = Set<AnyCancellable>()
 
     init(item: RegistryItem,
          registryId: UUID,
@@ -33,6 +34,21 @@ final class RegistryItemRowViewModel: ObservableObject {
         self.tabBarVM = tabbarVM
         self.collabManager = collabManager
         self.currentUserName = currentUserName
+        
+        // Subscribe to repository updates to automatically publish changes
+        registryRepo.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
+            
+        collabManager.objectWillChange
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Display
@@ -40,7 +56,13 @@ final class RegistryItemRowViewModel: ObservableObject {
     var title: String { item.title }
     
     var priceText: String {
-        "$\(item.price, default: "%.2f")"
+        let remaining = max(0.0, item.price - totalContributed)
+        return String(format: "$%.2f", remaining)
+    }
+    
+    var totalContributed: Double {
+        collabManager.contributions(for: item.id, in: registryId)
+            .reduce(0.0) { $0 + $1.amount }
     }
     
     var quantityText: String {
@@ -62,7 +84,8 @@ final class RegistryItemRowViewModel: ObservableObject {
     var isFullyFunded: Bool {
         let requested = requestedQuantity
         let purchased = purchasedQuantity
-        return purchased >= requested && requested > 0
+        let unitPaid = totalContributed >= item.price
+        return (purchased >= requested && requested > 0) || unitPaid
     }
     
     var purchasedProgress: Double {
@@ -123,6 +146,10 @@ final class RegistryItemRowViewModel: ObservableObject {
     }
     
     func decreaseQty() {
+        if totalContributed > 0 && requestedQuantity <= 1 {
+            // Cannot remove/decrease the product to 0 if there are contributions
+            return
+        }
         if isOwner {
             registryRepo.decreaseQty(item.id, for: registryId)
         } else {
@@ -142,6 +169,7 @@ final class RegistryItemRowViewModel: ObservableObject {
     }
     
     func removeItem() {
+        guard totalContributed == 0 else { return }
         if isOwner {
             registryRepo.removeProduct(productId: item.id, from: registryId)
         } else {

@@ -28,6 +28,9 @@ final class CollaborationManager: ObservableObject {
     // registryId → shareToken (first 8 chars of UUID string)
     @Published var shareTokens: [UUID: String] = [:]
     
+    // registryId → [RegistryChatMessage]
+    @Published var chatMessages: [UUID: [RegistryChatMessage]] = [:]
+    
     private init() {}
     
     func switchUser(to user: MockUser) {
@@ -115,6 +118,11 @@ final class CollaborationManager: ObservableObject {
             title: "New Collaborator",
             body: "[For \(owner)] \(name) joined your registry!"
         )
+        
+        sendSystemMessage(
+            registryId: registryId,
+            content: "👋 \(name) joined the registry as a collaborator."
+        )
     }
     
     func collaborators(for registryId: UUID) -> [Collaborator] {
@@ -178,6 +186,19 @@ final class CollaborationManager: ObservableObject {
             title: "Registry Request",
             body: "[For \(owner)] \(collaboratorName) wants to \(actionText)"
         )
+        
+        switch action {
+        case .add(let item):
+            sendSystemMessage(
+                registryId: registryId,
+                content: "🔔 \(collaboratorName) requested to add \(item.title). Awaiting owner approval."
+            )
+        case .remove(_, let title):
+            sendSystemMessage(
+                registryId: registryId,
+                content: "🔔 \(collaboratorName) requested to remove \(title). Awaiting owner approval."
+            )
+        }
     }
     
     func approveRequest(id: UUID, registryRepo: RegistryRepository) {
@@ -188,18 +209,73 @@ final class CollaborationManager: ObservableObject {
         switch request.action {
         case .add(let item):
             registryRepo.addProduct(item, to: request.registryId)
-        case .remove(let itemId, _):
+            sendSystemMessage(
+                registryId: request.registryId,
+                content: "✅ \(request.collaboratorName)'s request to add \(item.title) was approved."
+            )
+        case .remove(let itemId, let title):
             registryRepo.removeProduct(productId: itemId, from: request.registryId)
+            sendSystemMessage(
+                registryId: request.registryId,
+                content: "✅ \(request.collaboratorName)'s request to remove \(title) was approved."
+            )
         }
     }
     
     func rejectRequest(id: UUID) {
         guard let index = requests.firstIndex(where: { $0.id == id }) else { return }
         requests[index].status = .rejected
+        let req = requests[index]
+        
+        switch req.action {
+        case .add(let item):
+            sendSystemMessage(
+                registryId: req.registryId,
+                content: "❌ \(req.collaboratorName)'s request to add \(item.title) was declined."
+            )
+        case .remove(_, let title):
+            sendSystemMessage(
+                registryId: req.registryId,
+                content: "❌ \(req.collaboratorName)'s request to remove \(title) was declined."
+            )
+        }
     }
     
     func pendingRequests(for registryId: UUID) -> [CollabRequest] {
         requests.filter { $0.registryId == registryId && $0.status == .pending }
+    }
+    
+    // MARK: - Group Chat
+    
+    func sendMessage(registryId: UUID, senderName: String, content: String) {
+        let message = RegistryChatMessage(
+            registryId: registryId,
+            senderName: senderName,
+            content: content,
+            type: .user
+        )
+        appendMessage(message, to: registryId)
+    }
+    
+    func sendSystemMessage(registryId: UUID, content: String) {
+        let message = RegistryChatMessage(
+            registryId: registryId,
+            senderName: "System",
+            content: content,
+            type: .system
+        )
+        appendMessage(message, to: registryId)
+    }
+    
+    private func appendMessage(_ message: RegistryChatMessage, to registryId: UUID) {
+        if chatMessages[registryId] == nil {
+            chatMessages[registryId] = []
+        }
+        chatMessages[registryId]?.append(message)
+    }
+    
+    func messages(for registryId: UUID) -> [RegistryChatMessage] {
+        chatMessages[registryId] ?? []
     }
     
     // MARK: - Contributions
@@ -210,7 +286,8 @@ final class CollaborationManager: ObservableObject {
         itemTitle: String,
         contributorName: String,
         amount: Double,
-        isFullPayment: Bool
+        isFullPayment: Bool,
+        registryRepo: RegistryRepository
     ) {
         let contribution = Contribution(
             id: UUID(),
@@ -223,6 +300,21 @@ final class CollaborationManager: ObservableObject {
             date: Date()
         )
         contributions.append(contribution)
+        
+        let owner = ownerName(for: registryId, in: registryRepo)
+        let amountText = amount.formatted(.currency(code: "USD"))
+        
+        // 1. Send local system notification
+        sendNotification(
+            title: "New Contribution",
+            body: "[For \(owner)] \(contributorName) contributed \(amountText) for \(itemTitle)!"
+        )
+        
+        // 2. Post to registry group chat
+        let messageText = isFullPayment ?
+            "🎁 \(contributorName) gifted \(itemTitle) in full!" :
+            "💸 \(contributorName) contributed \(amountText) for \(itemTitle)!"
+        sendSystemMessage(registryId: registryId, content: messageText)
     }
     
     func contributions(for itemId: String, in registryId: UUID) -> [Contribution] {

@@ -48,3 +48,31 @@ struct Contribution: Identifiable, Codable {
     let isFullPayment: Bool
     let date: Date
 }
+
+enum MessageType {
+    case user        // normal chat message from a participant
+    case system      // auto-generated: request approved/rejected, collaborator joined, item added/removed
+}
+
+struct RegistryChatMessage: Identifiable {
+    let id: UUID
+    let registryId: UUID
+    let senderName: String     // "Alice Johnson", "Bob Smith", or "System"
+    let content: String
+    let type: MessageType
+    let timestamp: Date
+    
+    init(id: UUID = UUID(),
+         registryId: UUID,
+         senderName: String,
+         content: String,
+         type: MessageType = .user,
+         timestamp: Date = Date()) {
+        self.id = id
+        self.registryId = registryId
+        self.senderName = senderName
+        self.content = content
+        self.type = type
+        self.timestamp = timestamp
+    }
+}

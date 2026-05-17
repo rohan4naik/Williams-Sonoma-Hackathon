@@ -39,6 +39,7 @@ struct RegistryDetailView: View {
     @State private var selectedCollaborator: Collaborator? = nil
     @State private var showingPermissionDialog = false
     @State private var showingChat = false
+    @State private var showingRegistryChat = false
     
     private var isOwner: Bool {
         let currentUserId = mockUserManager.currentUser.id
@@ -53,6 +54,10 @@ struct RegistryDetailView: View {
             .values.flatMap { $0 }
         let allRegistries = otherUsersRegistries + registryRepo.registries
         return allRegistries.first { $0.id == registryId }
+    }
+    
+    private var registryChatName: String {
+        registry?.displayName ?? "Registry Chat"
     }
     
     var searchResults: [ProductItem] {
@@ -506,21 +511,47 @@ struct RegistryDetailView: View {
                         currentUserName: mockUserManager.currentUser.name
                     )
                     .environmentObject(collabManager)
+                    .environmentObject(registryRepo)
                 }
                 .sheet(isPresented: $showingChat) {
                     ChatBotView(viewModel: ChatViewModel(registryRepo: registryRepo, cartRepo: cartRepo, registryId: registryId))
                 }
+                .sheet(isPresented: $showingRegistryChat) {
+                    RegistryChatView(
+                        registryId: registryId,
+                        registryName: registryChatName
+                    )
+                    .environmentObject(collabManager)
+                    .environmentObject(mockUserManager)
+                    .environmentObject(registryRepo)
+                }
                 .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        showingChat = true
-                    } label: {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding()
-                            .background(Color.purple)
-                            .clipShape(Circle())
-                            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    VStack(spacing: 12) {
+                        // Group Chat button (above AI button)
+                        Button {
+                            showingRegistryChat = true
+                        } label: {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(14)
+                                .background(Color.black)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        }
+                        
+                        // AI Chatbot button (existing, unchanged)
+                        Button {
+                            showingChat = true
+                        } label: {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.purple)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        }
                     }
                     .padding()
                 }
@@ -603,18 +634,46 @@ struct RegistryDetailView: View {
                 .padding(.bottom, 4)
             }
             
-            Button(action: { showingContributionFor = item }) {
-                HStack(spacing: 4) {
-                    Image(systemName: "dollarsign.circle")
-                        .font(.caption)
-                    Text("Contribute or Gift")
-                        .font(.caption)
+            let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+            let remainingAmount = max(0.0, item.price - totalContributed)
+            
+            HStack(spacing: 8) {
+                if remainingAmount > 0 {
+                    Button(action: { showingContributionFor = item }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "dollarsign.circle")
+                                .font(.caption)
+                            Text("Contribute or Gift")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
                 }
-                .foregroundColor(.black)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
+                
+                if !itemContributions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            let uniqueContributors = Array(Set(itemContributions.map { $0.contributorName })).sorted()
+                            ForEach(uniqueContributors, id: \.self) { name in
+                                HStack(spacing: 3) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 10))
+                                    Text(name)
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.black)
+                                .cornerRadius(12)
+                            }
+                        }
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)

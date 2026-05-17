@@ -193,9 +193,13 @@ private extension RegistryView {
                                 }
                                 
                                 // Progress bar for purchased items
-                                let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
-                                let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
-                                let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
+                                let totalItems = registry.items.count
+                                let purchasedItems = registry.items.filter { item in
+                                    let itemContributions = CollaborationManager.shared.contributions
+                                        .filter { $0.registryId == registry.id && $0.itemId == item.id }
+                                    let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+                                    return (item.purchasedQuantity >= item.quantity && item.quantity > 0) || (totalContributed >= item.price)
+                                }.count
                                 
                                 VStack(spacing: 4) {
                                     HStack {
@@ -291,9 +295,13 @@ private extension RegistryView {
                                 }
                                 
                                 // Progress bar for purchased items
-                                let totalItems = registry.items.reduce(0) { $0 + $1.quantity }
-                                let actualPurchased = registry.items.reduce(0) { $0 + $1.purchasedQuantity }
-                                let purchasedItems = (totalItems > 0 && actualPurchased == 0) ? min(totalItems, Int.random(in: 1...2)) : actualPurchased
+                                let totalItems = registry.items.count
+                                let purchasedItems = registry.items.filter { item in
+                                    let itemContributions = CollaborationManager.shared.contributions
+                                        .filter { $0.registryId == registry.id && $0.itemId == item.id }
+                                    let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+                                    return (item.purchasedQuantity >= item.quantity && item.quantity > 0) || (totalContributed >= item.price)
+                                }.count
                                 
                                 VStack(spacing: 4) {
                                     HStack {
