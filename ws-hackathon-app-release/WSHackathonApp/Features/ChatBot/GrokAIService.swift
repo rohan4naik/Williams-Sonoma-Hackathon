@@ -37,8 +37,14 @@ class GrokAIService {
             return key
         }
         
-        // 2. Try to load from local workspace path directly as fail-safe fallback
-        let localPath = "/Users/abhinav/Desktop/Williams-Sonoma-Hackathon/ws-hackathon-app-release/WSHackathonApp/Secrets.plist"
+        // 2. Dynamic compile-time directory lookup (works on ANY developer's Mac!)
+        let sourceFile = #filePath
+        let sourceURL = URL(fileURLWithPath: sourceFile)
+        // GrokAIService.swift is in WSHackathonApp/Features/ChatBot/
+        // Secrets.plist is 2 levels up in WSHackathonApp/
+        let projectDirURL = sourceURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        let localPath = projectDirURL.appendingPathComponent("Secrets.plist").path
+        
         if let dict = NSDictionary(contentsOfFile: localPath),
            let key = dict["GroqAPIKey"] as? String {
             return key
