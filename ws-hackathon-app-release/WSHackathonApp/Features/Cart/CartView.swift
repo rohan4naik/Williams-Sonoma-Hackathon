@@ -141,12 +141,6 @@ struct CartView: View {
                                     HStack {
                                         Text("Save for Later (\(viewModel.savedItems.count))")
                                             .font(.system(size: 20, weight: .bold, design: .default))
-                                        
-                                        Spacer()
-                                        
-                                        Text("Moving items?")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
                                     }
                                     .padding(.horizontal)
                                     
