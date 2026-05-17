@@ -13,7 +13,8 @@ final class CartViewModel: ObservableObject {
 
     @Published private(set) var items: [CartItem] = []
     @Published private(set) var savedItems: [CartItem] = []
-    @Published private(set) var recommendations: [ProductItem] = []
+    @Published private(set) var completeCollectionRecommendations: [ProductItem] = []
+    @Published private(set) var frequentlyBoughtTogetherRecommendations: [ProductItem] = []
     @Published private(set) var recentlyViewed: [ProductItem] = []
     
     private var cancellables = Set<AnyCancellable>()
@@ -86,9 +87,20 @@ final class CartViewModel: ObservableObject {
     }
     
     private func updateRecommendations() {
-        self.recommendations = SmartRecommendationService.shared.getRecommendations(
+        let allProducts = ProductRepository.shared.products
+
+        // Step 1: Score & rank collection picks based on full current cart
+        let collectionPicks = SmartRecommendationService.shared.generateCompleteCollection(
             for: items,
-            from: ProductRepository.shared.products
+            from: allProducts
+        )
+        self.completeCollectionRecommendations = collectionPicks
+
+        // Step 2: Score FBT picks — explicitly excludes collection picks for zero overlap
+        self.frequentlyBoughtTogetherRecommendations = SmartRecommendationService.shared.generateFrequentlyBoughtTogether(
+            for: items,
+            from: allProducts,
+            excluding: collectionPicks
         )
     }
     
