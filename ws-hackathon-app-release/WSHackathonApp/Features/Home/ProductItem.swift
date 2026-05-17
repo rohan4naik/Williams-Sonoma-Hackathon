@@ -46,6 +46,14 @@ struct ProductItem: Identifiable, Equatable {
     
     var imageURL: URL? {
         if let imageUrl = path {
+            if imageUrl.contains("example.com") || imageUrl.contains("placeholder") || imageUrl.isEmpty {
+                let cleanQuery = title
+                    .lowercased()
+                    .components(separatedBy: CharacterSet.alphanumerics.inverted)
+                    .filter { !$0.isEmpty && $0.count > 2 }
+                    .joined(separator: ",")
+                return URL(string: "https://loremflickr.com/600/600/\(cleanQuery.isEmpty ? "kitchen" : cleanQuery)")
+            }
             if imageUrl.hasPrefix("http://") || imageUrl.hasPrefix("https://") {
                 return URL(string: imageUrl)
             }
