@@ -12,4 +12,9 @@ struct RegistryItem: Identifiable {
     let price: Double
     let imageUrl: String?
     var quantity: Int
+    
+    var imageURL: URL? {
+        guard let url = imageUrl else { return nil }
+        return URL(string: AppConstants.API.imageBasePath + url)
+    }
 }
