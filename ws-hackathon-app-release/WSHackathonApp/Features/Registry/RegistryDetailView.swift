@@ -27,8 +27,37 @@ struct RegistryDetailView: View {
     @State private var collapsedCategoryIds: Set<UUID> = []
     @State private var isUncategorizedCollapsed = false
     
+    // Collaboration UI States
+    @EnvironmentObject var collabManager: CollaborationManager
+    @EnvironmentObject var mockUserManager: MockUserManager
+    @State private var showingShareSheet = false
+    @State private var showingJoinSheet = false
+    @State private var shareToken = ""
+    @State private var showingContributionFor: RegistryItem? = nil
+    @State private var showingCollabRequests = false
+    @State private var copiedToClipboard = false
+    @State private var selectedCollaborator: Collaborator? = nil
+    @State private var showingPermissionDialog = false
+    @State private var showingChat = false
+    @State private var showingRegistryChat = false
+    
+    private var isOwner: Bool {
+        let currentUserId = mockUserManager.currentUser.id
+        let currentUserRegistries = registryRepo.allUserRegistries[currentUserId] 
+            ?? registryRepo.registries
+        return currentUserRegistries.contains { $0.id == registryId }
+    }
+    
     private var registry: Registry? {
-        registryRepo.registries.first { $0.id == registryId }
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        return allRegistries.first { $0.id == registryId }
+    }
+    
+    private var registryChatName: String {
+        registry?.displayName ?? "Registry Chat"
     }
     
     var searchResults: [ProductItem] {
@@ -79,48 +108,65 @@ struct RegistryDetailView: View {
                         if searchText.isEmpty {
                             // MARK: - Registry Details
                             
-                            // Header Card
-                            HStack(spacing: 16) {
-                                // Circular Image
-                                Group {
-                                    if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .scaledToFill()
-                                    } else {
-                                        ZStack {
-                                            Color(.systemGray6)
-                                            Image(systemName: "camera.fill")
-                                                .foregroundColor(.gray.opacity(0.5))
+                            headerCard(registry: registry)
+                            
+                            // Collaborators section
+                            if !collabManager.collaborators(for: registryId).isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    Text("Collaborators")
+                                        .font(.headline)
+                                        .padding(.horizontal, 16)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 12) {
+                                            ForEach(collabManager.collaborators(for: registryId)) { collaborator in
+                                                VStack(spacing: 6) {
+                                                    Circle()
+                                                        .fill(Color.black)
+                                                        .frame(width: 44, height: 44)
+                                                        .overlay(
+                                                            Text(String(collaborator.name.prefix(2)).uppercased())
+                                                                .font(.caption.bold())
+                                                                .foregroundColor(.white)
+                                                        )
+                                                    if collaborator.permission == .full {
+                                                        Text("Full")
+                                                            .font(.system(size: 9))
+                                                            .foregroundColor(.white)
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2)
+                                                            .background(Color.green)
+                                                            .clipShape(Capsule())
+                                                    }
+                                                }
+                                                .contentShape(Rectangle())
+                                                .onTapGesture {
+                                                    selectedCollaborator = collaborator
+                                                    showingPermissionDialog = true
+                                                }
+                                            }
                                         }
+                                        .padding(.horizontal, 16)
                                     }
                                 }
-                                .frame(width: 80, height: 80)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(registry.displayName)
-                                        .font(.title3)
-                                        .fontWeight(.bold)
-                                    
-                                    Text(registry.date.formatted(date: .abbreviated, time: .omitted))
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    
-                                    Text(registry.event.title)
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(4)
+                                .confirmationDialog(
+                                    "Manage Permissions for \(selectedCollaborator?.name ?? "Collaborator")",
+                                    isPresented: $showingPermissionDialog,
+                                    titleVisibility: .visible
+                                ) {
+                                    Button("Full Access") {
+                                        if let collab = selectedCollaborator {
+                                            collabManager.updatePermission(.full, for: collab.id, in: registryId)
+                                        }
+                                    }
+                                    Button("Limited") {
+                                        if let collab = selectedCollaborator {
+                                            collabManager.updatePermission(.limited, for: collab.id, in: registryId)
+                                        }
+                                    }
+                                    Button("Cancel", role: .cancel) {}
                                 }
-                                Spacer()
                             }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(16)
-                            .padding(.horizontal, 16)
                             
                             // Items List
                             VStack(alignment: .leading, spacing: 16) {
@@ -185,16 +231,8 @@ struct RegistryDetailView: View {
                                                     if !isUncategorizedCollapsed {
                                                         VStack(spacing: 12) {
                                                             ForEach(registry.uncategorizedItems) { item in
-                                                                RegistryItemRow(
-                                                                    viewModel: RegistryItemRowViewModel(
-                                                                        item: item,
-                                                                        registryId: registryId,
-                                                                        registryRepo: registryRepo,
-                                                                        cartRepo: cartRepo,
-                                                                        tabbarVM: tabBarVM
-                                                                    )
-                                                                )
-                                                                .draggable(item.id)
+                                                                registryItemRow(for: item, in: registryId)
+                                                                    .draggable(item.id)
                                                             }
                                                         }
                                                         .padding(.horizontal, 12)
@@ -204,6 +242,7 @@ struct RegistryDetailView: View {
                                                 .background(Color.white)
                                                 .cornerRadius(12)
                                                 .dropDestination(for: String.self) { itemIds, _ in
+                                                    guard isOwner else { return false }
                                                     withAnimation(.spring(duration: 0.3)) {
                                                         for itemId in itemIds {
                                                             registryRepo.moveItem(itemId: itemId, toCategoryId: nil, in: registryId)
@@ -251,7 +290,7 @@ struct RegistryDetailView: View {
                                                             
                                                             Spacer()
                                                             
-                                                            if category.isCustom {
+                                                            if category.isCustom && isOwner {
                                                                 Button(role: .destructive) {
                                                                     withAnimation(.spring(duration: 0.3)) {
                                                                         registryRepo.deleteCustomCategory(categoryId: category.id, from: registryId)
@@ -283,16 +322,8 @@ struct RegistryDetailView: View {
                                                             } else {
                                                                 VStack(spacing: 12) {
                                                                     ForEach(categoryItems) { item in
-                                                                        RegistryItemRow(
-                                                                            viewModel: RegistryItemRowViewModel(
-                                                                                item: item,
-                                                                                registryId: registryId,
-                                                                                registryRepo: registryRepo,
-                                                                                cartRepo: cartRepo,
-                                                                                tabbarVM: tabBarVM
-                                                                            )
-                                                                        )
-                                                                        .draggable(item.id)
+                                                                        registryItemRow(for: item, in: registryId)
+                                                                            .draggable(item.id)
                                                                     }
                                                                 }
                                                                 .padding(.horizontal, 12)
@@ -303,6 +334,7 @@ struct RegistryDetailView: View {
                                                     .background(Color.white)
                                                     .cornerRadius(12)
                                                     .dropDestination(for: String.self) { itemIds, _ in
+                                                        guard isOwner else { return false }
                                                         withAnimation(.spring(duration: 0.3)) {
                                                             for itemId in itemIds {
                                                                 registryRepo.moveItem(itemId: itemId, toCategoryId: category.id, in: registryId)
@@ -315,65 +347,86 @@ struct RegistryDetailView: View {
                                                 }
                                             }
                                             
-                                            // Add Category Button
-                                            Button {
-                                                showingAddCategorySheet = true
-                                            } label: {
-                                                HStack {
-                                                    Image(systemName: "plus.circle.fill")
-                                                    Text("Add Category")
+                                            if isOwner {
+                                                // Add Category Button
+                                                Button {
+                                                    showingAddCategorySheet = true
+                                                } label: {
+                                                    HStack {
+                                                        Image(systemName: "plus.circle.fill")
+                                                        Text("Add Category")
+                                                    }
+                                                    .font(.headline)
+                                                    .foregroundColor(.black)
+                                                    .frame(maxWidth: .infinity)
+                                                    .padding()
+                                                    .background(Color.white)
+                                                    .cornerRadius(12)
+                                                    .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                                                 }
-                                                .font(.headline)
-                                                .foregroundColor(.black)
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.white)
-                                                .cornerRadius(12)
-                                                .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                                                .padding(.top, 8)
                                             }
-                                            .padding(.top, 8)
                                         }
                                         .padding(.horizontal, 16)
                                     } else {
                                         // Standard flat list of items
                                         VStack(spacing: 12) {
                                             ForEach(registry.items) { item in
-                                                RegistryItemRow(
-                                                    viewModel: RegistryItemRowViewModel(
-                                                        item: item,
-                                                        registryId: registryId,
-                                                        registryRepo: registryRepo,
-                                                        cartRepo: cartRepo,
-                                                        tabbarVM: tabBarVM
-                                                    )
-                                                )
+                                                registryItemRow(for: item, in: registryId)
                                             }
                                         }
                                         .padding(.horizontal, 16)
                                     }
+                                    
+                                    // Add All to Cart Button
+                                    Button(action: {
+                                        for item in registry.items {
+                                            let product = ProductItem(
+                                                id: item.id,
+                                                title: item.title,
+                                                price: item.price,
+                                                path: item.imageUrl
+                                            )
+                                            cartRepo.add(product: product, quantity: item.quantity)
+                                        }
+
+                                    }) {
+                                        Text("Add All to Cart")
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .padding()
+                                            .background(Color.black)
+                                            .cornerRadius(12)
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 8)
                                 }
                             }
-                            
-                            // Actions
-                            Button(role: .destructive) {
-                                showingDeleteConfirmation = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "trash")
-                                    Text("Delete Registry")
-                                }
-                                .font(.headline)
-                                .foregroundColor(.red)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.red.opacity(0.1))
-                                .cornerRadius(12)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.top, 24)
                             
                             // MARK: - AI Suggestions
                             aiSuggestionsSection
+                            
+                            // Actions
+                            if isOwner {
+                                Button(role: .destructive) {
+                                    showingDeleteConfirmation = true
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "trash")
+                                        Text("Delete Registry")
+                                    }
+                                    .font(.headline)
+                                    .foregroundColor(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.red.opacity(0.1))
+                                    .cornerRadius(12)
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.top, 24)
+                                .padding(.bottom, 24)
+                            }
                             
                         } else {
                             // MARK: - Search Results
@@ -387,7 +440,12 @@ struct RegistryDetailView: View {
                                 } else {
                                     VStack(spacing: 12) {
                                         ForEach(searchResults) { product in
-                                            RegistryProductSearchRow(product: product, registryId: registryId)
+                                            RegistryProductSearchRow(
+                                                product: product,
+                                                registryId: registryId,
+                                                collabManager: collabManager,
+                                                currentUserName: mockUserManager.currentUser.name
+                                            )
                                                 .environmentObject(registryRepo)
                                         }
                                     }
@@ -401,7 +459,43 @@ struct RegistryDetailView: View {
                 .background(Color(.systemGray6).opacity(0.5).ignoresSafeArea())
                 .navigationTitle(registry.displayName)
                 .navigationBarTitleDisplayMode(.inline)
-                .searchable(text: $searchText, prompt: "Search products to add...")
+                .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search products to add...")
+                .toolbar {
+                    // Share button
+                    if isOwner {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(action: {
+                                shareToken = collabManager.generateToken(for: registryId)
+                                UIPasteboard.general.string = "ws://registry/\(shareToken)"
+                                withAnimation { copiedToClipboard = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation { copiedToClipboard = false }
+                                }
+                            }) {
+                                Image(systemName: copiedToClipboard ? "checkmark" : "square.and.arrow.up")
+                                    .foregroundColor(.black)
+                            }
+                        }
+                    }
+                    
+                    // Requests badge button (only if pending requests exist)
+                    if !collabManager.pendingRequests(for: registryId).isEmpty {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            NavigationLink(destination: CollabRequestsView(registryId: registryId)
+                                .environmentObject(registryRepo)
+                                .environmentObject(collabManager)) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "bell.fill")
+                                        .foregroundColor(.black)
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 4, y: -4)
+                                }
+                            }
+                        }
+                    }
+                }
                 .sheet(isPresented: $showingAddCategorySheet) {
                     AddCategorySheet(
                         registry: registry,
@@ -409,6 +503,74 @@ struct RegistryDetailView: View {
                         tappedPredefinedCategoryIds: $tappedPredefinedCategoryIds
                     )
                     .environmentObject(registryRepo)
+                }
+                .sheet(item: $showingContributionFor) { item in
+                    ContributionView(
+                        item: item,
+                        registryId: registryId,
+                        currentUserName: mockUserManager.currentUser.name
+                    )
+                    .environmentObject(collabManager)
+                    .environmentObject(registryRepo)
+                }
+                .sheet(isPresented: $showingChat) {
+                    ChatBotView(viewModel: ChatViewModel(registryRepo: registryRepo, cartRepo: cartRepo, registryId: registryId))
+                }
+                .sheet(isPresented: $showingRegistryChat) {
+                    RegistryChatView(
+                        registryId: registryId,
+                        registryName: registryChatName
+                    )
+                    .environmentObject(collabManager)
+                    .environmentObject(mockUserManager)
+                    .environmentObject(registryRepo)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    VStack(spacing: 12) {
+                        // Group Chat button (above AI button)
+                        Button {
+                            showingRegistryChat = true
+                        } label: {
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(14)
+                                .background(Color.black)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        }
+                        
+                        // AI Chatbot button (existing, black background)
+                        Button {
+                            showingChat = true
+                        } label: {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.black)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        }
+                    }
+                    .padding()
+                }
+                .overlay(alignment: .top) {
+                    if copiedToClipboard {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text("Invite code copied!")
+                                .font(.subheadline.bold())
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(Color.white)
+                        .cornerRadius(24)
+                        .shadow(color: .black.opacity(0.1), radius: 10)
+                        .padding(.top, 8)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                    }
                 }
                 .confirmationDialog(
                     "Are you sure you want to delete this registry?",
@@ -425,10 +587,96 @@ struct RegistryDetailView: View {
                 ContentUnavailableView("Registry not found", systemImage: "tray")
             }
         }
-        .onChange(of: registryRepo.registries) { _ in
-            if registryRepo.registries.first(where: { $0.id == registryId }) == nil {
+        .onChange(of: registryRepo.registries) { _, _ in
+            let otherUsersRegistries = registryRepo.allUserRegistries
+                .filter { $0.key != registryRepo.currentUserId }
+                .values.flatMap { $0 }
+            let allRegistries = otherUsersRegistries + registryRepo.registries
+            if allRegistries.first(where: { $0.id == registryId }) == nil {
                 dismiss()
             }
+        }
+    }
+    
+    @ViewBuilder
+    private func registryItemRow(for item: RegistryItem, in registryId: UUID) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            RegistryItemRow(
+                viewModel: RegistryItemRowViewModel(
+                    item: item,
+                    registryId: registryId,
+                    registryRepo: registryRepo,
+                    cartRepo: cartRepo,
+                    tabbarVM: tabBarVM,
+                    collabManager: collabManager,
+                    currentUserName: mockUserManager.currentUser.name
+                )
+            )
+            
+            // Contribution tags
+            let itemContributions = collabManager.contributions(for: item.id, in: registryId)
+            if !itemContributions.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(itemContributions) { contribution in
+                        HStack(spacing: 4) {
+                            Image(systemName: contribution.isFullPayment ? "gift.fill" : "dollarsign.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(contribution.isFullPayment ? .green : .blue)
+                            Text(contribution.isFullPayment ?
+                                 "Gifted by \(contribution.contributorName)" :
+                                 "Contributed \(contribution.amount.formatted(.currency(code: "USD"))) by \(contribution.contributorName)")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+            }
+            
+            let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+            let remainingAmount = max(0.0, item.price - totalContributed)
+            
+            HStack(spacing: 8) {
+                if remainingAmount > 0 {
+                    Button(action: { showingContributionFor = item }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "dollarsign.circle")
+                                .font(.caption)
+                            Text("Contribute or Gift")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                    }
+                }
+                
+                if !itemContributions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            let uniqueContributors = Array(Set(itemContributions.map { $0.contributorName })).sorted()
+                            ForEach(uniqueContributors, id: \.self) { name in
+                                HStack(spacing: 3) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 10))
+                                    Text(name)
+                                        .font(.system(size: 10, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.black)
+                                .cornerRadius(12)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
     }
     
@@ -452,7 +700,7 @@ struct RegistryDetailView: View {
             
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
-                    .foregroundColor(.purple)
+                    .foregroundColor(.black)
                     .font(.title3)
                 Text("AI Suggestions")
                     .font(.title3)
@@ -468,7 +716,12 @@ struct RegistryDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 16) {
                     ForEach(suggestedProducts) { product in
-                        RegistrySuggestionCard(product: product, registryId: registryId)
+                        RegistrySuggestionCard(
+                            product: product,
+                            registryId: registryId,
+                            collabManager: collabManager,
+                            currentUserName: mockUserManager.currentUser.name
+                        )
                             .environmentObject(registryRepo)
                     }
                 }
@@ -476,6 +729,93 @@ struct RegistryDetailView: View {
                 .padding(.bottom, 8)
             }
         }
+    }
+    
+    private func headerCard(registry: Registry) -> some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 16) {
+                // Circular Image
+                Group {
+                    if let imageData = registry.imageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        ZStack {
+                            Color(.systemGray6)
+                            Image(systemName: "camera.fill")
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                    }
+                }
+                .frame(width: 80, height: 80)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Color.gray.opacity(0.1), lineWidth: 1))
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(registry.displayName)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                    
+                    Text(registry.date.formatted(date: .abbreviated, time: .omitted))
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    
+                    Text(registry.event.title)
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(4)
+                }
+                Spacer()
+            }
+            
+            Divider()
+            
+
+            
+            // MARK: - Budget Section
+            if let budget = registry.targetBudget {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Registry Total")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Spacer()
+                        Text("\(registry.totalValue.formatted(.currency(code: "USD"))) / \(budget.formatted(.currency(code: "USD")))")
+                            .font(.subheadline)
+                            .fontWeight(registry.totalValue > budget ? .bold : .medium)
+                            .foregroundColor(registry.totalValue > budget ? .red : .primary)
+                    }
+                    
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color(.systemGray6))
+                                .frame(height: 8)
+                            
+                            let percentage = min(registry.totalValue / budget, 1.0)
+                            Capsule()
+                                .fill(registry.totalValue > budget ? Color.red : Color.black)
+                                .frame(width: geometry.size.width * CGFloat(percentage), height: 8)
+                        }
+                    }
+                    .frame(height: 8)
+                    
+                    if registry.totalValue > budget {
+                        Text("You have exceeded your target budget.")
+                            .font(.caption2)
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+        .background(Color.white)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
     }
 }
 
@@ -593,14 +933,33 @@ struct AddCategorySheet: View {
 struct RegistryProductSearchRow: View {
     let product: ProductItem
     let registryId: UUID
+    let collabManager: CollaborationManager
+    let currentUserName: String
     @EnvironmentObject var registryRepo: RegistryRepository
     
     var quantityInRegistry: Int {
-        guard let registry = registryRepo.registries.first(where: { $0.id == registryId }),
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        guard let registry = allRegistries.first(where: { $0.id == registryId }),
               let item = registry.items.first(where: { $0.id == product.id }) else {
             return 0
         }
         return item.quantity
+    }
+    
+    var currentUserPermission: CollabPermission? {
+        collabManager.collaborators(for: registryId)
+            .first { $0.name == currentUserName }?.permission
+    }
+    
+    var isCollaborator: Bool {
+        currentUserPermission != nil
+    }
+    
+    var canActDirectly: Bool {
+        !isCollaborator || currentUserPermission == .full
     }
     
     var body: some View {
@@ -637,7 +996,17 @@ struct RegistryProductSearchRow: View {
             // Quantity Controls
             HStack(spacing: 12) {
                 Button {
-                    registryRepo.decreaseQty(product.id, for: registryId)
+                    if canActDirectly {
+                        registryRepo.decreaseQty(product.id, for: registryId)
+                    } else {
+                        collabManager.submitRequest(
+                            registryId: registryId,
+                            collaboratorName: currentUserName,
+                            action: .remove(itemId: product.id, itemTitle: product.title),
+                            permission: .limited,
+                            registryRepo: registryRepo
+                        )
+                    }
                 } label: {
                     Image(systemName: "minus")
                         .font(.system(size: 14, weight: .bold))
@@ -657,7 +1026,11 @@ struct RegistryProductSearchRow: View {
                     if quantityInRegistry == 0 {
                         // First time adding - Auto-match predefined category
                         let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
-                        let registry = registryRepo.registries.first { $0.id == registryId }
+                        let otherUsersRegistries = registryRepo.allUserRegistries
+                            .filter { $0.key != registryRepo.currentUserId }
+                            .values.flatMap { $0 }
+                        let allRegistries = otherUsersRegistries + registryRepo.registries
+                        let registry = allRegistries.first { $0.id == registryId }
                         let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
                         
                         let newItem = RegistryItem(
@@ -668,10 +1041,46 @@ struct RegistryProductSearchRow: View {
                             quantity: 1,
                             categoryId: categoryId
                         )
-                        registryRepo.addProduct(newItem, to: registryId)
+                        if canActDirectly {
+                            registryRepo.addProduct(newItem, to: registryId)
+                        } else {
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
                     } else {
                         // Already added, just increment
-                        registryRepo.increaseQty(product.id, for: registryId)
+                        if canActDirectly {
+                            registryRepo.increaseQty(product.id, for: registryId)
+                        } else {
+                            let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                            let otherUsersRegistries = registryRepo.allUserRegistries
+                                .filter { $0.key != registryRepo.currentUserId }
+                                .values.flatMap { $0 }
+                            let allRegistries = otherUsersRegistries + registryRepo.registries
+                            let registry = allRegistries.first { $0.id == registryId }
+                            let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                            
+                            let newItem = RegistryItem(
+                                id: product.id,
+                                title: product.title,
+                                price: product.price ?? 0.0,
+                                imageUrl: product.path,
+                                quantity: 1,
+                                categoryId: categoryId
+                            )
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
                     }
                 } label: {
                     Image(systemName: "plus")
@@ -694,15 +1103,34 @@ struct RegistryProductSearchRow: View {
 struct RegistrySuggestionCard: View {
     let product: ProductItem
     let registryId: UUID
+    let collabManager: CollaborationManager
+    let currentUserName: String
     @EnvironmentObject var registryRepo: RegistryRepository
     
     var isAdded: Bool {
-        guard let registry = registryRepo.registries.first(where: { $0.id == registryId }) else { return false }
+        let otherUsersRegistries = registryRepo.allUserRegistries
+            .filter { $0.key != registryRepo.currentUserId }
+            .values.flatMap { $0 }
+        let allRegistries = otherUsersRegistries + registryRepo.registries
+        guard let registry = allRegistries.first(where: { $0.id == registryId }) else { return false }
         return registry.items.contains(where: { $0.id == product.id })
     }
     
+    var currentUserPermission: CollabPermission? {
+        collabManager.collaborators(for: registryId)
+            .first { $0.name == currentUserName }?.permission
+    }
+    
+    var isCollaborator: Bool {
+        currentUserPermission != nil
+    }
+    
+    var canActDirectly: Bool {
+        !isCollaborator || currentUserPermission == .full
+    }
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             // Product Image
             AsyncImage(url: product.imageURL) { phase in
                 if let image = phase.image {
@@ -717,47 +1145,64 @@ struct RegistrySuggestionCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             
             // Product Info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(product.title)
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(2)
-                    .frame(height: 36, alignment: .topLeading)
-                
+            Text(product.title)
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(2)
+                .foregroundColor(.black)
+                .frame(height: 36, alignment: .topLeading)
+                .padding(.horizontal, 8)
+            
+            // Price & Add Button (HStack like Screenshot 2)
+            HStack(alignment: .center) {
                 if let price = product.price {
                     Text(price.formatted(.currency(code: "USD")))
                         .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.black)
                 }
-            }
-            .padding(.horizontal, 8)
-            
-            // Add Button
-            Button {
-                if !isAdded {
-                    // Auto-match predefined category
-                    let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
-                    let registry = registryRepo.registries.first { $0.id == registryId }
-                    let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
-                    
-                    let newItem = RegistryItem(
-                        id: product.id,
-                        title: product.title,
-                        price: product.price ?? 0.0,
-                        imageUrl: product.path,
-                        quantity: 1,
-                        categoryId: categoryId
-                    )
-                    registryRepo.addProduct(newItem, to: registryId)
+                
+                Spacer()
+                
+                Button {
+                    if !isAdded {
+                        // Auto-match predefined category
+                        let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                        let otherUsersRegistries = registryRepo.allUserRegistries
+                            .filter { $0.key != registryRepo.currentUserId }
+                            .values.flatMap { $0 }
+                        let allRegistries = otherUsersRegistries + registryRepo.registries
+                        let registry = allRegistries.first { $0.id == registryId }
+                        let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                        
+                        let newItem = RegistryItem(
+                            id: product.id,
+                            title: product.title,
+                            price: product.price ?? 0.0,
+                            imageUrl: product.path,
+                            quantity: 1,
+                            categoryId: categoryId
+                        )
+                        if canActDirectly {
+                            registryRepo.addProduct(newItem, to: registryId)
+                        } else {
+                            collabManager.submitRequest(
+                                registryId: registryId,
+                                collaboratorName: currentUserName,
+                                action: .add(newItem),
+                                permission: .limited,
+                                registryRepo: registryRepo
+                            )
+                        }
+                    }
+                } label: {
+                    Image(systemName: isAdded ? "checkmark" : "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(isAdded ? .gray : .black)
+                        .frame(width: 32, height: 32)
+                        .background(Color(.systemGray5))
+                        .clipShape(Circle())
                 }
-            } label: {
-                Text(isAdded ? "Added" : "+ Add")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(isAdded ? .gray : .white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(isAdded ? Color(.systemGray5) : Color.black)
-                    .cornerRadius(8)
+                .disabled(isAdded)
             }
-            .disabled(isAdded)
             .padding(.horizontal, 8)
             .padding(.bottom, 12)
         }

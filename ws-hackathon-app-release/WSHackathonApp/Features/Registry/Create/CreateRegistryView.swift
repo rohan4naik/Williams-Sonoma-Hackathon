@@ -243,16 +243,14 @@ struct CreateRegistryView: View {
                 }) {
                     Text(AppStrings.Registry.createButton)
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(viewModel.isValid ? .white : Color(.systemGray3))
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.black)
+                        .background(viewModel.isValid ? Color.black : Color(.systemGray5))
                         .cornerRadius(12)
                         .padding(.horizontal)
                 }
                 .disabled(!viewModel.isValid)
-                .opacity(viewModel.isValid ? 1.0 : 0.6)
-                .blur(radius: viewModel.isValid ? 0 : 1.5)
                 .animation(.easeInOut, value: viewModel.isValid)
                 .padding(.top, 16)
                 Spacer()

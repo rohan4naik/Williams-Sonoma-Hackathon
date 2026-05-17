@@ -36,10 +36,24 @@ struct CartItemRow: View {
                     .padding(.top, 16)
                 
                 // Price
-                Text("$\(item.price, specifier: "%.2f")")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.primary)
-                    .padding(.top, 6)
+                let itemContributions = CollaborationManager.shared.contributions
+                    .filter { $0.itemId == item.id }
+                let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+                let remainingPrice = max(0.0, item.price - totalContributed)
+                
+                HStack(spacing: 8) {
+                    Text("$\(remainingPrice, specifier: "%.2f")")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.primary)
+                    
+                    if totalContributed > 0 {
+                        Text("($\(item.price, specifier: "%.2f") - $\(totalContributed, specifier: "%.2f") contri)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.green)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.top, 6)
                 
                 Spacer()
                 

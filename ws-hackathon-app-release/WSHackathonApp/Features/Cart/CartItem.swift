@@ -24,10 +24,7 @@ struct CartItem: Identifiable, Codable, Equatable {
     var isPopular: Bool? = false
     
     var imageURL: URL? {
-        if let imageUrl = path {
-            return URL(string: AppConstants.API.imageBasePath + imageUrl)
-        }
-        return nil
+        ProductImageResolver.resolveImageURL(forTitle: title, path: path)
     }
 
     static func == (lhs: CartItem, rhs: CartItem) -> Bool {

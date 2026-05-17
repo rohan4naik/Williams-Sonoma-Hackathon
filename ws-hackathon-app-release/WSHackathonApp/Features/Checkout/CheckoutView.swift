@@ -567,6 +567,11 @@ struct CheckoutItemRow: View {
     let item: CartItem
     
     var body: some View {
+        let itemContributions = CollaborationManager.shared.contributions
+            .filter { $0.itemId == item.id }
+        let totalContributed = itemContributions.reduce(0.0) { $0 + $1.amount }
+        let remainingPrice = max(0.0, (item.price * Double(item.quantity)) - totalContributed)
+        
         HStack(spacing: 12) {
             CustomAsyncImage(url: item.imageURL)
                 .frame(width: 60, height: 60)
@@ -585,9 +590,15 @@ struct CheckoutItemRow: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
+                    if totalContributed > 0 {
+                        Text("(Contributed: $\(totalContributed, specifier: "%.2f"))")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                    
                     Spacer()
                     
-                    Text("$\(item.price * Double(item.quantity), specifier: "%.2f")")
+                    Text("$\(remainingPrice, specifier: "%.2f")")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                 }
