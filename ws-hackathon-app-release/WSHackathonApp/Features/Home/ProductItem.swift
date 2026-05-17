@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 struct ProductItem: Identifiable, Equatable {
     let id: String
     let title: String
@@ -17,6 +18,7 @@ struct ProductItem: Identifiable, Equatable {
     let availability: String?
     let canGiftWrap: Bool
     let material: String?
+    let pattern: String?
     
     init(id: String,
          title: String,
@@ -27,7 +29,8 @@ struct ProductItem: Identifiable, Equatable {
          collection: String? = nil,
          availability: String? = "ON_HAND",
          canGiftWrap: Bool = false,
-         material: String? = nil) {
+         material: String? = nil,
+         pattern: String? = nil) {
         self.id = id
         self.title = title
         self.price = price
@@ -38,6 +41,7 @@ struct ProductItem: Identifiable, Equatable {
         self.availability = availability
         self.canGiftWrap = canGiftWrap
         self.material = material
+        self.pattern = pattern
     }
     
     var imageURL: URL? {
@@ -93,6 +97,7 @@ extension ProductItem {
         self.availability = dto.availability
         self.canGiftWrap = dto.properties?.canGiftWrap == "true"
         self.material = dto.properties?.material
+        self.pattern = dto.properties?.pattern
         
         // Price formatting: use sellingPrice if available, else regularPrice
         if let sellingPrice = dto.price?.sellingPrice {

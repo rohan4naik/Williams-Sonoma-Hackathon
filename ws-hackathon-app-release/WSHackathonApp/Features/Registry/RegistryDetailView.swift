@@ -19,6 +19,14 @@ struct RegistryDetailView: View {
     @State private var showingDeleteConfirmation = false
     @State private var searchText = ""
     
+    // Categorization UI States
+    @State private var targetedCategoryId: UUID? = nil
+    @State private var isUncategorizedTargeted = false
+    @State private var showingAddCategorySheet = false
+    @State private var tappedPredefinedCategoryIds: Set<UUID> = []
+    @State private var collapsedCategoryIds: Set<UUID> = []
+    @State private var isUncategorizedCollapsed = false
+    
     private var registry: Registry? {
         registryRepo.registries.first { $0.id == registryId }
     }
@@ -116,27 +124,233 @@ struct RegistryDetailView: View {
                             
                             // Items List
                             VStack(alignment: .leading, spacing: 16) {
-                                Text("Your Items")
-                                    .font(.headline)
-                                    .padding(.horizontal, 16)
+                                HStack {
+                                    Text("Your Items")
+                                        .font(.headline)
+                                    Spacer()
+                                    if registry.items.count >= 5 && !registry.isCategorized {
+                                        Button(action: {
+                                            withAnimation(.spring(duration: 0.3)) {
+                                                registryRepo.toggleCategorized(for: registryId)
+                                            }
+                                        }) {
+                                            Text("Organize by category")
+                                                .font(.subheadline)
+                                                .fontWeight(.medium)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 6)
+                                                .background(Color(.systemGray6))
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 16)
                                 
                                 if registry.items.isEmpty {
                                     emptyItemsView
                                 } else {
-                                    VStack(spacing: 12) {
-                                        ForEach(registry.items) { item in
-                                            RegistryItemRow(
-                                                viewModel: RegistryItemRowViewModel(
-                                                    item: item,
-                                                    registryId: registryId,
-                                                    registryRepo: registryRepo,
-                                                    cartRepo: cartRepo,
-                                                    tabbarVM: tabBarVM
-                                                )
-                                            )
+                                    if registry.isCategorized {
+                                        VStack(spacing: 16) {
+                                            // Uncategorized Section
+                                            if !registry.uncategorizedItems.isEmpty {
+                                                VStack(alignment: .leading, spacing: 12) {
+                                                    Button {
+                                                        withAnimation(.spring(duration: 0.3)) {
+                                                            isUncategorizedCollapsed.toggle()
+                                                        }
+                                                    } label: {
+                                                        HStack {
+                                                            Image(systemName: isUncategorizedCollapsed ? "chevron.right" : "chevron.down")
+                                                                .foregroundColor(.secondary)
+                                                                .font(.subheadline)
+                                                            
+                                                            Text("Uncategorized")
+                                                                .font(.headline)
+                                                                .foregroundColor(.primary)
+                                                            Text("(\(registry.uncategorizedItems.count))")
+                                                                .foregroundColor(.secondary)
+                                                                .font(.subheadline)
+                                                            Spacer()
+                                                        }
+                                                    }
+                                                    .buttonStyle(.plain)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 8)
+                                                    .background(isUncategorizedTargeted ? Color.black.opacity(0.05) : Color.clear)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 8)
+                                                            .stroke(isUncategorizedTargeted ? Color.black : Color.clear, lineWidth: 1)
+                                                    )
+                                                    
+                                                    if !isUncategorizedCollapsed {
+                                                        VStack(spacing: 12) {
+                                                            ForEach(registry.uncategorizedItems) { item in
+                                                                RegistryItemRow(
+                                                                    viewModel: RegistryItemRowViewModel(
+                                                                        item: item,
+                                                                        registryId: registryId,
+                                                                        registryRepo: registryRepo,
+                                                                        cartRepo: cartRepo,
+                                                                        tabbarVM: tabBarVM
+                                                                    )
+                                                                )
+                                                                .draggable(item.id)
+                                                            }
+                                                        }
+                                                        .padding(.horizontal, 12)
+                                                    }
+                                                }
+                                                .padding(.vertical, 12)
+                                                .background(Color.white)
+                                                .cornerRadius(12)
+                                                .dropDestination(for: String.self) { itemIds, _ in
+                                                    withAnimation(.spring(duration: 0.3)) {
+                                                        for itemId in itemIds {
+                                                            registryRepo.moveItem(itemId: itemId, toCategoryId: nil, in: registryId)
+                                                        }
+                                                    }
+                                                    return true
+                                                } isTargeted: { isTargeted in
+                                                    isUncategorizedTargeted = isTargeted
+                                                }
+                                            }
+                                            
+                                            // Categorized Sections
+                                            ForEach(registry.categories) { category in
+                                                let categoryItems = registry.items(for: category.id)
+                                                let isVisible = !categoryItems.isEmpty || category.isCustom || tappedPredefinedCategoryIds.contains(category.id)
+                                                
+                                                if isVisible {
+                                                    let isCollapsed = collapsedCategoryIds.contains(category.id)
+                                                    
+                                                    VStack(alignment: .leading, spacing: 12) {
+                                                        HStack {
+                                                            Button {
+                                                                withAnimation(.spring(duration: 0.3)) {
+                                                                    if isCollapsed {
+                                                                        collapsedCategoryIds.remove(category.id)
+                                                                    } else {
+                                                                        collapsedCategoryIds.insert(category.id)
+                                                                    }
+                                                                }
+                                                            } label: {
+                                                                HStack {
+                                                                    Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                                                                        .foregroundColor(.secondary)
+                                                                        .font(.subheadline)
+                                                                    
+                                                                    Text(category.name)
+                                                                        .font(.headline)
+                                                                        .foregroundColor(.primary)
+                                                                    Text("(\(categoryItems.count))")
+                                                                        .foregroundColor(.secondary)
+                                                                        .font(.subheadline)
+                                                                }
+                                                            }
+                                                            .buttonStyle(.plain)
+                                                            
+                                                            Spacer()
+                                                            
+                                                            if category.isCustom {
+                                                                Button(role: .destructive) {
+                                                                    withAnimation(.spring(duration: 0.3)) {
+                                                                        registryRepo.deleteCustomCategory(categoryId: category.id, from: registryId)
+                                                                    }
+                                                                } label: {
+                                                                    Image(systemName: "trash")
+                                                                        .foregroundColor(.red)
+                                                                }
+                                                            }
+                                                        }
+                                                        .padding(.horizontal, 12)
+                                                        .padding(.vertical, 8)
+                                                        .background(targetedCategoryId == category.id ? Color.black.opacity(0.05) : Color.clear)
+                                                        .overlay(
+                                                            RoundedRectangle(cornerRadius: 8)
+                                                                .stroke(targetedCategoryId == category.id ? Color.black : Color.clear, lineWidth: 1)
+                                                        )
+                                                        
+                                                        if !isCollapsed {
+                                                            if categoryItems.isEmpty {
+                                                                Text("Drag items here")
+                                                                    .font(.caption)
+                                                                    .foregroundColor(.gray)
+                                                                    .padding(.vertical, 12)
+                                                                    .frame(maxWidth: .infinity, alignment: .center)
+                                                                    .background(Color(.systemGray6))
+                                                                    .cornerRadius(8)
+                                                                    .padding(.horizontal, 12)
+                                                            } else {
+                                                                VStack(spacing: 12) {
+                                                                    ForEach(categoryItems) { item in
+                                                                        RegistryItemRow(
+                                                                            viewModel: RegistryItemRowViewModel(
+                                                                                item: item,
+                                                                                registryId: registryId,
+                                                                                registryRepo: registryRepo,
+                                                                                cartRepo: cartRepo,
+                                                                                tabbarVM: tabBarVM
+                                                                            )
+                                                                        )
+                                                                        .draggable(item.id)
+                                                                    }
+                                                                }
+                                                                .padding(.horizontal, 12)
+                                                            }
+                                                        }
+                                                    }
+                                                    .padding(.vertical, 12)
+                                                    .background(Color.white)
+                                                    .cornerRadius(12)
+                                                    .dropDestination(for: String.self) { itemIds, _ in
+                                                        withAnimation(.spring(duration: 0.3)) {
+                                                            for itemId in itemIds {
+                                                                registryRepo.moveItem(itemId: itemId, toCategoryId: category.id, in: registryId)
+                                                            }
+                                                        }
+                                                        return true
+                                                    } isTargeted: { isTargeted in
+                                                        targetedCategoryId = isTargeted ? category.id : nil
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Add Category Button
+                                            Button {
+                                                showingAddCategorySheet = true
+                                            } label: {
+                                                HStack {
+                                                    Image(systemName: "plus.circle.fill")
+                                                    Text("Add Category")
+                                                }
+                                                .font(.headline)
+                                                .foregroundColor(.black)
+                                                .frame(maxWidth: .infinity)
+                                                .padding()
+                                                .background(Color.white)
+                                                .cornerRadius(12)
+                                                .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                                            }
+                                            .padding(.top, 8)
                                         }
+                                        .padding(.horizontal, 16)
+                                    } else {
+                                        // Standard flat list of items
+                                        VStack(spacing: 12) {
+                                            ForEach(registry.items) { item in
+                                                RegistryItemRow(
+                                                    viewModel: RegistryItemRowViewModel(
+                                                        item: item,
+                                                        registryId: registryId,
+                                                        registryRepo: registryRepo,
+                                                        cartRepo: cartRepo,
+                                                        tabbarVM: tabBarVM
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
                                     }
-                                    .padding(.horizontal, 16)
                                 }
                             }
                             
@@ -188,6 +402,14 @@ struct RegistryDetailView: View {
                 .navigationTitle(registry.displayName)
                 .navigationBarTitleDisplayMode(.inline)
                 .searchable(text: $searchText, prompt: "Search products to add...")
+                .sheet(isPresented: $showingAddCategorySheet) {
+                    AddCategorySheet(
+                        registry: registry,
+                        registryId: registryId,
+                        tappedPredefinedCategoryIds: $tappedPredefinedCategoryIds
+                    )
+                    .environmentObject(registryRepo)
+                }
                 .confirmationDialog(
                     "Are you sure you want to delete this registry?",
                     isPresented: $showingDeleteConfirmation,
@@ -252,6 +474,116 @@ struct RegistryDetailView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 8)
+            }
+        }
+    }
+}
+
+// MARK: - Add Category Sheet
+struct AddCategorySheet: View {
+    let registry: Registry
+    let registryId: UUID
+    @Binding var tappedPredefinedCategoryIds: Set<UUID>
+    @EnvironmentObject var registryRepo: RegistryRepository
+    @Environment(\.dismiss) private var dismiss
+    
+    @State private var isCreatingCustom = false
+    @State private var customName = ""
+    
+    var inactivePredefinedCategories: [RegistryCategory] {
+        registry.categories.filter { !$0.isCustom && registry.items(for: $0.id).isEmpty && !tappedPredefinedCategoryIds.contains($0.id) }
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                if isCreatingCustom {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("Category Name")
+                            .font(.headline)
+                        
+                        TextField("e.g. Backyard Party", text: $customName)
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(10)
+                        
+                        Button {
+                            if !customName.isEmpty {
+                                _ = registryRepo.addCustomCategory(name: customName, to: registryId)
+                                dismiss()
+                            }
+                        } label: {
+                            Text("Create Category")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(customName.isEmpty ? Color.gray : Color.black)
+                                .cornerRadius(12)
+                        }
+                        .disabled(customName.isEmpty)
+                        
+                        Spacer()
+                    }
+                    .padding(24)
+                    .navigationTitle("New Custom Category")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Back") {
+                                isCreatingCustom = false
+                            }
+                        }
+                    }
+                } else {
+                    List {
+                        if inactivePredefinedCategories.isEmpty {
+                            Section {
+                                Text("All predefined categories are active.")
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Section(header: Text("Predefined Categories")) {
+                                ForEach(inactivePredefinedCategories) { category in
+                                    Button {
+                                        tappedPredefinedCategoryIds.insert(category.id)
+                                        dismiss()
+                                    } label: {
+                                        HStack {
+                                            Text(category.name)
+                                                .foregroundColor(.primary)
+                                            Spacer()
+                                            Image(systemName: "plus.circle")
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Section {
+                            Button {
+                                isCreatingCustom = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "plus")
+                                    Text("Create custom category")
+                                }
+                                .font(.headline)
+                                .foregroundColor(.black)
+                            }
+                        }
+                    }
+                    .navigationTitle("Add Category")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                dismiss()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -323,13 +655,18 @@ struct RegistryProductSearchRow: View {
                 
                 Button {
                     if quantityInRegistry == 0 {
-                        // First time adding
+                        // First time adding - Auto-match predefined category
+                        let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                        let registry = registryRepo.registries.first { $0.id == registryId }
+                        let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                        
                         let newItem = RegistryItem(
                             id: product.id,
                             title: product.title,
                             price: product.price ?? 0.0,
                             imageUrl: product.path,
-                            quantity: 1
+                            quantity: 1,
+                            categoryId: categoryId
                         )
                         registryRepo.addProduct(newItem, to: registryId)
                     } else {
@@ -396,12 +733,18 @@ struct RegistrySuggestionCard: View {
             // Add Button
             Button {
                 if !isAdded {
+                    // Auto-match predefined category
+                    let matchedCategory = RegistryCategory.matchingCategory(for: product.pattern)
+                    let registry = registryRepo.registries.first { $0.id == registryId }
+                    let categoryId = registry?.categories.first { $0.name == matchedCategory?.name }?.id
+                    
                     let newItem = RegistryItem(
                         id: product.id,
                         title: product.title,
                         price: product.price ?? 0.0,
                         imageUrl: product.path,
-                        quantity: 1
+                        quantity: 1,
+                        categoryId: categoryId
                     )
                     registryRepo.addProduct(newItem, to: registryId)
                 }
