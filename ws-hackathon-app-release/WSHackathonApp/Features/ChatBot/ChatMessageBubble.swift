@@ -62,18 +62,7 @@ struct ChatProductCard: View {
     @State private var isAdded = false
     
     var imageURL: URL? {
-        if imageUrl.contains("example.com") || imageUrl.contains("placeholder") || imageUrl.isEmpty {
-            let cleanQuery = title
-                .lowercased()
-                .components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { !$0.isEmpty && $0.count > 2 }
-                .joined(separator: ",")
-            return URL(string: "https://loremflickr.com/600/600/\(cleanQuery.isEmpty ? "kitchen" : cleanQuery)")
-        }
-        if imageUrl.hasPrefix("http://") || imageUrl.hasPrefix("https://") {
-            return URL(string: imageUrl)
-        }
-        return URL(string: AppConstants.API.imageBasePath + imageUrl)
+        ProductImageResolver.resolveImageURL(forTitle: title, path: imageUrl)
     }
     
     var body: some View {

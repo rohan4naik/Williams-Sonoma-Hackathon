@@ -44,19 +44,7 @@ final class RegistryItemRowViewModel: ObservableObject {
     }
     
     var imageURL: URL? {
-        guard let url = item.imageUrl else { return nil }
-        if url.contains("example.com") || url.contains("placeholder") || url.isEmpty {
-            let cleanQuery = item.title
-                .lowercased()
-                .components(separatedBy: CharacterSet.alphanumerics.inverted)
-                .filter { !$0.isEmpty && $0.count > 2 }
-                .joined(separator: ",")
-            return URL(string: "https://loremflickr.com/600/600/\(cleanQuery.isEmpty ? "kitchen" : cleanQuery)")
-        }
-        if url.hasPrefix("http://") || url.hasPrefix("https://") {
-            return URL(string: url)
-        }
-        return URL(string: AppConstants.API.imageBasePath + url)
+        ProductImageResolver.resolveImageURL(forTitle: item.title, path: item.imageUrl)
     }
     
     var requestedQuantity: Int {

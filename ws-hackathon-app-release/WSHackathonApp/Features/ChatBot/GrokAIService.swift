@@ -27,8 +27,25 @@ struct ChatCompletionResponse: Codable {
 
 class GrokAIService {
     static let shared = GrokAIService()
-    // Using the provided Groq API key (starts with gsk_)
-    private let apiKey = "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"
+    
+    private var apiKey: String {
+        // 1. Try to load from Bundle
+        if let path = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
+           let dict = NSDictionary(contentsOfFile: path),
+           let key = dict["GroqAPIKey"] as? String,
+           !key.contains("YOUR_GROQ_API_KEY_HERE") {
+            return key
+        }
+        
+        // 2. Try to load from local workspace path directly as fail-safe fallback
+        let localPath = "/Users/abhinav/Desktop/Williams-Sonoma-Hackathon/ws-hackathon-app-release/WSHackathonApp/Secrets.plist"
+        if let dict = NSDictionary(contentsOfFile: localPath),
+           let key = dict["GroqAPIKey"] as? String {
+            return key
+        }
+        
+        return ""
+    }
     
     func sendMessage(messages: [GrokChatMessage]) async throws -> GrokChatMessage {
         // Updated to Groq API endpoint since a Groq key was provided
