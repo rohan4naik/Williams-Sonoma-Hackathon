@@ -46,7 +46,7 @@ struct ProductItem: Identifiable, Equatable {
     
     var imageURL: URL? {
         if let imageUrl = path {
-            if imageUrl.hasPrefix("http://") || imageUrl.hasPrefix("https://") {
+            if imageUrl.hasPrefix("http://") || imageUrl.hasPrefix("https://") || imageUrl.hasPrefix("file://") {
                 return URL(string: imageUrl)
             }
             return URL(string: AppConstants.API.imageBasePath + imageUrl)

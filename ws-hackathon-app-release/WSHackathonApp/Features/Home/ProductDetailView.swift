@@ -296,12 +296,13 @@ struct ProductDetailView: View {
                                                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                                                     .stroke(Color(.systemGray5), lineWidth: 1)
                                             )
-                                            .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 5)
+                                            .shadow(color: Color.black.opacity(0.15), radius: 1, x: 0, y: 2)
                                             .frame(width: 156)
                                         }
                                         .buttonStyle(PlainButtonStyle())
                                     }
                                 }
+                                .padding(.vertical, 8)
                             }
                         }
                         .padding(.top, 8)

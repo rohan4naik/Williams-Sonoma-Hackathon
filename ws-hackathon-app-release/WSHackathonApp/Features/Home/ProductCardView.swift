@@ -119,6 +119,7 @@ struct ProductCardView: View {
                                 .background(Color.black)
                                 .clipShape(Circle())
                         }
+                        .buttonStyle(BorderlessButtonStyle())
                         .scaleEffect(cartBounce)
                         .offset(x: cartShake)
                     }
@@ -128,7 +129,7 @@ struct ProductCardView: View {
         }
         .background(Color(.systemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.15), radius: 1, x: 0, y: 2)
     }
     
     // MARK: - Animation Logic
